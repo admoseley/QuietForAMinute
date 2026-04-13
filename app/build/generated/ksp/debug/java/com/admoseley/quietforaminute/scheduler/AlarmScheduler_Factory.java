@@ -1,0 +1,46 @@
+package com.admoseley.quietforaminute.scheduler;
+
+import android.content.Context;
+import dagger.internal.DaggerGenerated;
+import dagger.internal.Factory;
+import dagger.internal.Provider;
+import dagger.internal.QualifierMetadata;
+import dagger.internal.ScopeMetadata;
+import javax.annotation.processing.Generated;
+
+@ScopeMetadata("javax.inject.Singleton")
+@QualifierMetadata("dagger.hilt.android.qualifiers.ApplicationContext")
+@DaggerGenerated
+@Generated(
+    value = "dagger.internal.codegen.ComponentProcessor",
+    comments = "https://dagger.dev"
+)
+@SuppressWarnings({
+    "unchecked",
+    "rawtypes",
+    "KotlinInternal",
+    "KotlinInternalInJava",
+    "cast",
+    "deprecation",
+    "nullness:initialization.field.uninitialized"
+})
+public final class AlarmScheduler_Factory implements Factory<AlarmScheduler> {
+  private final Provider<Context> contextProvider;
+
+  private AlarmScheduler_Factory(Provider<Context> contextProvider) {
+    this.contextProvider = contextProvider;
+  }
+
+  @Override
+  public AlarmScheduler get() {
+    return newInstance(contextProvider.get());
+  }
+
+  public static AlarmScheduler_Factory create(Provider<Context> contextProvider) {
+    return new AlarmScheduler_Factory(contextProvider);
+  }
+
+  public static AlarmScheduler newInstance(Context context) {
+    return new AlarmScheduler(context);
+  }
+}
