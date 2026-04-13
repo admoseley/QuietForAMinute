@@ -18,6 +18,7 @@ import javax.inject.Singleton
 const val EXTRA_SCHEDULE_ID = "extra_schedule_id"
 const val EXTRA_DURATION_MINUTES = "extra_duration_minutes"
 const val EXTRA_SOURCE = "extra_source"
+const val EXTRA_RESTORE_VOLUME = "extra_restore_volume"
 const val SOURCE_MANUAL = "manual"
 const val SOURCE_ALARM = "alarm"
 

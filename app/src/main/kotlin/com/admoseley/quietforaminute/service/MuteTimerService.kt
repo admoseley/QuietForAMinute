@@ -20,6 +20,7 @@ import com.admoseley.quietforaminute.audio.ChimePlayer
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
 import com.admoseley.quietforaminute.data.repository.ScheduleRepository
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
+import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SCHEDULE_ID
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
 import com.admoseley.quietforaminute.scheduler.SOURCE_ALARM
@@ -48,6 +49,7 @@ class MuteTimerService : Service() {
         val durationMinutes = intent?.getIntExtra(EXTRA_DURATION_MINUTES, 0) ?: 0
         val scheduleId = intent?.getLongExtra(EXTRA_SCHEDULE_ID, -1L) ?: -1L
         val source = intent?.getStringExtra(EXTRA_SOURCE) ?: ""
+        val restoreVolume = intent?.getIntExtra(EXTRA_RESTORE_VOLUME, -1) ?: -1
 
         if (durationMinutes <= 0) {
             stopSelf()
@@ -64,13 +66,13 @@ class MuteTimerService : Service() {
         // Cancel any existing countdown (e.g. if a new scheduled mute fires while one is active)
         countdownJob?.cancel()
         countdownJob = serviceScope.launch {
-            runCountdown(durationMinutes, scheduleId, source)
+            runCountdown(durationMinutes, scheduleId, source, restoreVolume)
         }
 
         return START_NOT_STICKY
     }
 
-    private suspend fun runCountdown(totalMinutes: Int, scheduleId: Long, source: String) {
+    private suspend fun runCountdown(totalMinutes: Int, scheduleId: Long, source: String, manualRestoreVolume: Int) {
         Log.d("MuteTimerService", "runCountdown started: total=$totalMinutes, source=$source")
         
         if (source == SOURCE_ALARM) {
@@ -94,7 +96,7 @@ class MuteTimerService : Service() {
         }
 
         Log.d("MuteTimerService", "Countdown complete. Restoring volume...")
-        restoreVolume()
+        restoreVolume(manualRestoreVolume)
 
         // Re-schedule next occurrence for alarms triggered by a schedule
         if (source == SOURCE_ALARM && scheduleId >= 0) {
@@ -118,9 +120,9 @@ class MuteTimerService : Service() {
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
     }
 
-    private suspend fun restoreVolume() {
+    private suspend fun restoreVolume(manualRestoreVolume: Int) {
         Log.d("MuteTimerService", "Executing restoreVolume()")
-        val defaultVolume = prefsRepository.defaultVolume.first()
+        val defaultVolume = if (manualRestoreVolume >= 0) manualRestoreVolume else prefsRepository.defaultVolume.first()
         val chimeEnabled = prefsRepository.chimeOnRestore.first()
 
         // Suppress the VolumeReceiver

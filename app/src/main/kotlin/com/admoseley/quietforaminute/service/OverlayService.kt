@@ -22,6 +22,7 @@ import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
 import com.admoseley.quietforaminute.overlay.OverlayViewController
 import com.admoseley.quietforaminute.receiver.VolumeReceiver
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
+import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
 import com.admoseley.quietforaminute.scheduler.SOURCE_MANUAL
 import dagger.hilt.android.AndroidEntryPoint
@@ -52,7 +53,7 @@ class OverlayService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         )
 
-        overlayViewController = OverlayViewController(this, ::onDurationChosen)
+        overlayViewController = OverlayViewController(this, prefsRepository, ::onDurationChosen)
 
         volumeReceiver = VolumeReceiver(onVolumeMuted = ::handleMuteDetected)
         val filter = IntentFilter(VolumeReceiver.ACTION_VOLUME_CHANGED)
@@ -88,13 +89,14 @@ class OverlayService : Service() {
         }
     }
 
-    private fun onDurationChosen(hours: Int, minutes: Int) {
+    private fun onDurationChosen(hours: Int, minutes: Int, restoreVolume: Int) {
         val durationMinutes = hours * 60 + minutes
         if (durationMinutes <= 0) return
 
         val intent = Intent(this, MuteTimerService::class.java).apply {
             putExtra(EXTRA_DURATION_MINUTES, durationMinutes)
             putExtra(EXTRA_SOURCE, SOURCE_MANUAL)
+            putExtra(EXTRA_RESTORE_VOLUME, restoreVolume)
         }
         startForegroundService(intent)
     }
