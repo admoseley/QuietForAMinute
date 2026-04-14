@@ -73,6 +73,10 @@ Requires **Android Studio** with JDK 21+ and Android SDK (min SDK 26, target SDK
 | Preferences | DataStore 1.1.0 |
 | Build | AGP 9.1.0, KSP |
 
+## Documentation
+
+For detailed step-by-step usage instructions, a full feature list, and answers to common questions, see the **[User Guide](INSTRUCTIONS.md)**.
+
 ## License
 
 This project is personal / private software. All rights reserved.
