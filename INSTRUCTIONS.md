@@ -11,6 +11,7 @@
    - 3.2 [Using the Mute Duration Popup](#32-using-the-mute-duration-popup)
    - 3.3 [The Timer Notification](#33-the-timer-notification)
    - 3.4 [Volume Restore & Chime](#34-volume-restore--chime)
+   - 3.5 [Edge Cases & Behavior Notes](#35-edge-cases--behavior-notes)
 4. [Scheduled Mutes](#4-scheduled-mutes)
    - 4.1 [Viewing Your Schedules](#41-viewing-your-schedules)
    - 4.2 [Creating a New Schedule](#42-creating-a-new-schedule)
@@ -101,64 +102,176 @@ This value is used as the default restore volume for both manual and scheduled m
 
 ## 3. Manual Mute (On-Demand)
 
+Manual mute is the core on-demand feature of Quiet For A Minute. It lets you silence your device instantly using the physical volume buttons — exactly as you normally would — but adds an automatic restore timer so your volume comes back on its own when the quiet period ends. There is nothing new to learn; you mute your phone the same way you always have.
+
+---
+
 ### 3.1 How It Gets Triggered
 
-The manual mute flow starts the moment your media volume reaches zero — whether you pressed the physical volume-down button repeatedly or dragged the volume slider all the way down. The app runs a lightweight background service (`OverlayService`) that listens for this event at all times.
+#### What the App Listens For
 
-When zero volume is detected:
+Quiet For A Minute runs a persistent background service called `OverlayService`. This service registers a listener for Android's internal volume-change broadcast and watches the **media stream** volume at all times. The moment that stream reaches **zero**, the service acts.
 
-1. If the overlay is enabled (see [Section 5.3](#53-show-timer-popup-on-mute)), the **Mute Duration Dialog** appears on screen.
-2. If a chime-on-mute sound is configured (see [Section 5.4](#54-chime-on-mute)), it plays at that moment.
+This means the trigger fires regardless of how you muted:
 
-> **Note:** The popup only appears if "Show timer popup on mute" is turned on AND the overlay permission has been granted. If either condition is not met, the phone mutes normally with no popup.
+- Pressing the **physical volume-down button** on the side of the device repeatedly until the slider disappears or shows zero.
+- Dragging the **on-screen volume slider** (the panel that appears when you press a volume key) all the way to the left.
+- Any third-party app or shortcut that sets media volume to zero programmatically.
+
+> **Important:** The app watches the **media volume stream** specifically — the same stream that controls music, videos, podcasts, and games. It does not trigger on ring volume, notification volume, or alarm volume changes. If you silence only your ringer (e.g., by flipping the physical mute switch on some devices), the popup will not appear.
+
+#### The Sequence of Events on Mute
+
+When zero media volume is detected, the following happens in order:
+
+1. The service checks whether **"Show timer popup on mute"** is enabled in Settings. If it is off, the flow stops here — your phone is simply muted and nothing else happens.
+2. The service checks whether the **overlay permission** ("Display over other apps") is granted. If it is not granted, the app posts a notification alerting you that the permission is needed, and the flow stops.
+3. The service checks whether the **mute chime** is enabled. If it is, the selected chime sound plays immediately — before the popup appears — giving you instant audio confirmation that the mute was detected.
+4. The **Mute Duration Dialog** slides onto the screen as a floating card above all other content, including the lock screen.
+
+> **Note:** If the duration popup is already visible on screen (e.g., you muted, saw the dialog, then unmuted and re-muted without dismissing it), the app will not open a second instance. The existing dialog stays open.
+
+#### When the Popup Does Not Appear
+
+There are a few situations where the popup intentionally does not appear even when volume hits zero:
+
+- **"Show timer popup on mute" is turned off** in Settings. This lets you keep scheduled mutes active while opting out of the manual popup entirely.
+- **The overlay permission is not granted.** A notification will appear in the shade instead, prompting you to grant it.
+- **The app itself is restoring your volume.** When a mute timer expires, the service raises the volume programmatically. This internal volume change is suppressed so it does not re-trigger the popup and cause an infinite loop.
 
 ---
 
 ### 3.2 Using the Mute Duration Popup
 
-The **Mute Duration Dialog** appears as a floating card over whatever is currently on your screen. It contains three areas:
+The **Mute Duration Dialog** is a rounded floating card that appears centered on your screen, overlaid on top of whatever app or screen was visible. It stays on top even if you switch apps or let the screen turn off and back on.
+
+The card has four distinct areas, from top to bottom:
+
+#### The Header
+
+At the very top of the card is a muted-volume icon and the prompt: **"Mute for how long?"** This is a visual confirmation that the app has detected your mute and is ready to set up the timer.
 
 #### Choosing a Duration
 
-The dialog shows a **Material 3 time picker** in the center of the card. This picker works like a clock, letting you select hours and minutes.
+The center of the card shows a **Material 3 time picker** — the same style used throughout Android for scheduling alarms and events.
 
-- Tap the **hour** field and enter or spin to your desired number of hours (0–23).
-- Tap the **minute** field and enter or spin to your desired number of minutes (0–59).
-- The picker defaults to **0 hours, 30 minutes** — a sensible starting point for most short mutes.
+The picker has two fields: **hours** and **minutes**.
+
+- **Default value:** The picker opens at **0 hours, 30 minutes** every time. This is intentional — 30 minutes covers most short meetings or focused sessions without requiring any adjustment.
+- **Entering a value:** Tap the hours or minutes field to highlight it. You can then type a number directly using your keypad, or use the up/down spinner arrows.
+- **Valid range:** Hours can be 0–23. Minutes can be 0–59. Any combination is valid as long as the total duration is greater than zero (i.e., you cannot start a zero-length timer).
+- **Examples of common durations:**
+  - 30-minute meeting → 0h 30m
+  - 1-hour class → 1h 0m
+  - 90-minute film → 1h 30m
+  - Overnight silence → 8h 0m
 
 #### Adjusting the Restore Volume (Per-Mute Override)
 
-Below the time picker is a **Restore Volume** slider. This lets you set the exact volume level your device will return to when this specific timer ends — independently of the global default in Settings.
+Below the time picker, separated by a divider line, is a **Restore Volume** row. This lets you fine-tune the volume level the app will restore to when *this specific* timer ends, without changing the global default saved in Settings.
 
-- Drag the slider to the desired level. The percentage is shown live to the right.
-- This override applies only to the current mute. Future mutes will still use the global default unless you adjust it here again.
+- The slider starts at the value set in Settings (your configured default restore volume).
+- Drag the slider right to increase the restore level, or left to decrease it.
+- The icon to the left of the label updates dynamically: a crossed-out speaker at zero, a low speaker at low volumes, and a full speaker at high volumes.
+- The percentage (e.g., **65%**) is displayed to the right and updates as you drag.
+- This override is local to this mute only. The next time the popup appears, it will again start from the global default.
+
+**When would you use this?**
+You might want to mute fully for a meeting, then restore to a quieter level than usual (e.g., 20%) because you'll still be in a shared space afterward. Or you might want to restore to maximum (100%) because you're about to take a call you don't want to miss. The per-mute override makes this adjustment without touching your global preferences.
 
 #### Starting or Skipping
 
-- Tap **Start** to begin the countdown. The button is disabled if both hours and minutes are set to zero.
-- Tap **Skip** to dismiss the popup without starting any timer. Your phone remains muted, but volume will not be restored automatically.
+At the bottom of the card are two buttons:
+
+- **Skip** (text button, left side) — Dismisses the popup without starting any timer. Your phone remains muted at zero volume. No automatic restore will happen. Use this if you want to silence your phone indefinitely and restore volume manually later.
+- **Start** (filled button, right side) — Confirms the selected duration and restore volume, dismisses the popup, and begins the countdown. This button is **disabled** (grayed out and unresponsive) if both the hours and minutes fields are set to zero. You must select at least one minute of mute time before Start becomes active.
+
+> **Tip:** You do not need to interact with the Start button immediately. The popup will stay on screen while you finish whatever you were doing. Take your time selecting the duration — the popup will not auto-dismiss.
 
 ---
 
 ### 3.3 The Timer Notification
 
-Once you tap **Start**, the popup dismisses and a persistent foreground notification appears in your notification shade. It shows:
+The moment you tap **Start**, two things happen simultaneously:
 
+1. The Mute Duration Dialog dismisses from the screen.
+2. A **persistent foreground notification** appears in your notification shade.
+
+#### What the Notification Shows
+
+- **Icon:** The app's volume monitor icon in the status bar and notification row.
 - **Title:** "Phone muted"
-- **Body:** "Restoring volume in Xh Ym" — updated roughly every 10 seconds as the countdown progresses.
+- **Body:** A countdown message in the format "Restoring volume in Xh Ym" — for example, "Restoring volume in 1h 29m" or "Restoring volume in 4m".
 
-Tapping the notification opens the app. The notification cannot be dismissed manually while the timer is running — this is intentional, as it ensures the background service stays alive.
+The body text updates approximately every 10 seconds as the countdown progresses, so you can pull down the notification shade at any time and see exactly how much quiet time remains.
+
+#### Why the Notification Cannot Be Dismissed
+
+The mute timer notification has the **ongoing** flag set, which means Android's swipe-to-dismiss gesture does not work on it. This is intentional and important: Android uses ongoing notifications as the anchor for foreground services. If the notification were dismissible, Android could kill the background service and your volume would never be restored automatically.
+
+You can, however, minimize it by collapsing the notification shade — it will remain in the status bar as a small icon.
+
+#### Tapping the Notification
+
+Tapping anywhere on the notification row opens the Quiet For A Minute app. There is no way to cancel or extend the timer from the notification itself — to do that, open the app while a timer is running. (Note: in-app timer controls are not currently implemented; the only way to end a mute early is to manually raise your volume back up.)
+
+#### The Notification Disappears Automatically
+
+When the countdown reaches zero, the timer notification removes itself from the shade without any action from you. You do not need to swipe it away.
 
 ---
 
 ### 3.4 Volume Restore & Chime
 
-When the countdown reaches zero:
+When the countdown finishes, the restore sequence runs in this exact order:
 
-1. The app restores your media volume to the level set in the mute dialog (or the global default if no override was set).
-2. A short toast message appears: **"System volume has been restored"**.
-3. If **Chime on restore** is enabled (see [Section 5.5](#55-chime-on-restore)), your selected restore chime sound plays immediately after the volume is raised.
-4. The timer notification disappears from the notification shade.
+#### Step 1 — Volume Is Raised
+
+The app reads the restore volume set in the mute dialog (or the global default if no override was entered) and sets your media stream to that level. The change is instantaneous.
+
+The app also suppresses its own volume-change listener for this one event so that raising the volume from zero does not re-trigger the mute popup.
+
+#### Step 2 — Toast Notification
+
+A small toast message appears briefly at the bottom of the screen: **"System volume has been restored"**. This gives you a visual cue even if you have no audio feedback configured.
+
+The toast appears on top of whatever is on screen at the time — you do not need to have the app open to see it.
+
+#### Step 3 — Restore Chime (If Enabled)
+
+If **Chime on restore** is turned on in Settings, a brief 200-millisecond delay is introduced before the chime plays. This gap ensures the volume has fully taken effect before the sound fires — so you actually hear the chime at the restored volume level rather than at zero.
+
+The chime plays once and then stops. The service waits an additional second after the chime starts before fully shutting down, to ensure the sound completes without being cut off.
+
+#### Step 4 — Notification Is Removed
+
+The persistent "Phone muted" foreground notification is removed from the notification shade. The status bar icon disappears. The mute timer service stops running.
+
+At this point, your device is fully back to normal — volume restored, notification gone, services idle — until you mute again.
+
+---
+
+### 3.5 Edge Cases & Behavior Notes
+
+#### What if I manually raise my volume before the timer ends?
+
+The timer continues running in the background. When it expires, the app will still attempt to set your volume to the configured restore level, potentially overriding whatever level you had manually set. If you decide to unmute yourself early, be aware that the timer is still active until it naturally expires.
+
+#### What if I mute again while a timer is already running?
+
+Muting again will trigger the popup a second time (if the overlay is enabled). Tapping **Start** on the second popup starts a new `MuteTimerService`, which cancels the previous countdown and replaces it with the new duration. Only one timer can run at a time.
+
+Tapping **Skip** on the second popup leaves the original timer running undisturbed.
+
+#### What if the app is force-stopped or the device restarts mid-timer?
+
+If the app is force-stopped, the timer service is killed and volume will not be automatically restored. You will need to raise your volume manually.
+
+If the device restarts, the manual mute timer does not survive — the `BootReceiver` only re-arms **scheduled** mutes, not one-off manual timers. Again, you would need to raise volume manually after a reboot.
+
+#### What if the device has a very low maximum volume?
+
+The restore volume is always clamped to the device's actual maximum. If the value stored in Settings is higher than the device maximum (e.g., due to a device change), the app will restore to the maximum available level rather than crashing or producing an error.
 
 ---
 
