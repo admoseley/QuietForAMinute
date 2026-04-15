@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.IntentCompat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.core.net.toUri
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -56,7 +58,9 @@ fun SettingsScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val uri = result.data?.let { intent ->
+                IntentCompat.getParcelableExtra(intent, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            }
             viewModel.setMuteChimeUri(uri?.toString())
         }
     }
@@ -65,7 +69,9 @@ fun SettingsScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val uri = result.data?.let { intent ->
+                IntentCompat.getParcelableExtra(intent, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            }
             viewModel.setRestoreChimeUri(uri?.toString())
         }
     }
@@ -75,7 +81,7 @@ fun SettingsScreen(
         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
             putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, if (isMute) "Mute Chime" else "Restore Chime")
-            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri?.let { Uri.parse(it) })
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri?.toUri())
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
         }
@@ -252,7 +258,7 @@ fun SettingsScreen(
                         headlineContent = { Text("Chime on mute") },
                         supportingContent = {
                             val name = remember(muteChimeUri) {
-                                muteChimeUri?.let { RingtoneManager.getRingtone(context, Uri.parse(it))?.getTitle(context) } ?: "Default chime"
+                                muteChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: "Default chime"
                             }
                             Text("Sound: $name")
                         },
@@ -272,7 +278,7 @@ fun SettingsScreen(
                         headlineContent = { Text("Chime on restore") },
                         supportingContent = {
                             val name = remember(restoreChimeUri) {
-                                restoreChimeUri?.let { RingtoneManager.getRingtone(context, Uri.parse(it))?.getTitle(context) } ?: "Default chime"
+                                restoreChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: "Default chime"
                             }
                             Text("Sound: $name")
                         },
@@ -302,7 +308,7 @@ fun SettingsScreen(
                             context.startActivity(
                                 Intent(
                                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    Uri.parse("package:${context.packageName}")
+                                    "package:${context.packageName}".toUri()
                                 )
                             )
                         }
@@ -315,7 +321,7 @@ fun SettingsScreen(
                             onGrant = {
                                 context.startActivity(
                                     Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                        data = Uri.parse("package:${context.packageName}")
+                                        data = "package:${context.packageName}".toUri()
                                     }
                                 )
                             }
