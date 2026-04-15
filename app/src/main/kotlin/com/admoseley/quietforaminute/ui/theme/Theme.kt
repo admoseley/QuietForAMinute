@@ -4,12 +4,23 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Indigo80,
-    secondary = IndigoGrey80,
-    tertiary = Teal80
+    primary = LibrarianPrimary,
+    secondary = LibrarianSecondary,
+    tertiary = LibrarianTertiary,
+    background = LibrarianDarkBackground,
+    surface = LibrarianDarkSurface,
+    onBackground = LibrarianOnBackground,
+    onSurface = LibrarianOnBackground,
+    primaryContainer = Color(0xFF004D61),
+    onPrimaryContainer = Color(0xFFB3E5FC),
+    secondaryContainer = Color(0xFF311B92),
+    onSecondaryContainer = Color(0xFFD1C4E9),
+    surfaceVariant = Color(0xFF252238),
+    onSurfaceVariant = Color(0xFFCAC4D0)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -21,7 +32,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun QuietTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Set to false to prioritize our custom Librarian theme
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

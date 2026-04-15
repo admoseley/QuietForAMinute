@@ -8,14 +8,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import com.admoseley.quietforaminute.service.OverlayService
 import com.admoseley.quietforaminute.ui.navigation.AppNavigation
+import com.admoseley.quietforaminute.ui.settings.SettingsViewModel
 import com.admoseley.quietforaminute.ui.theme.QuietTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: SettingsViewModel by viewModels()
 
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -28,7 +34,14 @@ class MainActivity : ComponentActivity() {
         startOverlayService()
 
         setContent {
-            QuietTheme {
+            val themeMode by viewModel.themeMode.collectAsState()
+            val isDarkTheme = when (themeMode) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            QuietTheme(darkTheme = isDarkTheme) {
                 AppNavigation()
             }
         }

@@ -1,4 +1,5 @@
 com.admoseley.quietforaminute
+color ic_launcher_background
 drawable ic_launcher_background
 drawable ic_volume_monitor
 mipmap ic_launcher

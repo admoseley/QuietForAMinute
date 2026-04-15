@@ -29,6 +29,7 @@ class PreferencesRepository @Inject constructor(
         val KEY_CHIME_ON_RESTORE = booleanPreferencesKey("chime_on_restore")
         val KEY_MUTE_CHIME_URI = stringPreferencesKey("mute_chime_uri")
         val KEY_RESTORE_CHIME_URI = stringPreferencesKey("restore_chime_uri")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
     val defaultVolume: Flow<Int> = context.dataStore.data
@@ -48,6 +49,9 @@ class PreferencesRepository @Inject constructor(
 
     val restoreChimeUri: Flow<String?> = context.dataStore.data
         .map { prefs -> prefs[KEY_RESTORE_CHIME_URI] }
+
+    val themeMode: Flow<String> = context.dataStore.data
+        .map { prefs -> prefs[KEY_THEME_MODE] ?: "SYSTEM" }
 
     suspend fun setDefaultVolume(volume: Int) {
         val max = context.getSystemService(AudioManager::class.java)
@@ -79,5 +83,9 @@ class PreferencesRepository @Inject constructor(
             if (uri == null) prefs.remove(KEY_RESTORE_CHIME_URI)
             else prefs[KEY_RESTORE_CHIME_URI] = uri
         }
+    }
+
+    suspend fun setThemeMode(mode: String) {
+        context.dataStore.edit { it[KEY_THEME_MODE] = mode }
     }
 }

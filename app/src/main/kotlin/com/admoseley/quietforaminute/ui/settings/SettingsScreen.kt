@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,7 @@ fun SettingsScreen(
     val chimeOnRestore by viewModel.chimeOnRestore.collectAsStateWithLifecycle()
     val muteChimeUri by viewModel.muteChimeUri.collectAsStateWithLifecycle()
     val restoreChimeUri by viewModel.restoreChimeUri.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
     val muteChimeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -159,10 +161,9 @@ fun SettingsScreen(
                             textAlign = TextAlign.Start
                         )
                     }
-                    Icon(
+                    Image(
                         painter = painterResource(R.mipmap.ic_launcher_foreground),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(64.dp)
                     )
                 }
@@ -212,9 +213,26 @@ fun SettingsScreen(
             }
 
             // Behavior settings
-            SectionLabel("Behavior")
+            SectionLabel("App Settings")
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
+                    ListItem(
+                        headlineContent = { Text("App Theme") },
+                        supportingContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                ThemeOption("Light", "LIGHT", themeMode) { viewModel.setThemeMode(it) }
+                                ThemeOption("Dark", "DARK", themeMode) { viewModel.setThemeMode(it) }
+                                ThemeOption("System", "SYSTEM", themeMode) { viewModel.setThemeMode(it) }
+                            }
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.Palette, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ListItem(
                         headlineContent = { Text("Show timer popup on mute") },
                         supportingContent = { Text("Opens a dialog when volume is set to 0") },
@@ -307,6 +325,29 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    label: String,
+    mode: String,
+    selectedMode: String,
+    onClick: (String) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable { onClick(mode) }
+    ) {
+        RadioButton(
+            selected = (mode == selectedMode),
+            onClick = { onClick(mode) }
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = 4.dp)
+        )
     }
 }
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-This is a single-module Android project using Gradle Kotlin DSL. Requires JDK 17+ and Android SDK (install Android Studio).
+This is a single-module Android project using Gradle Kotlin DSL. Requires JDK 21+ and Android SDK (install Android Studio).
 
 ```bash
 ./gradlew assembleDebug          # Build debug APK
@@ -40,6 +40,7 @@ The app has two main user flows:
 - `data/datastore/` — `PreferencesRepository` wrapping DataStore (default volume, overlay enabled)
 - `data/repository/` — `ScheduleRepository` facade over DAO + `AlarmScheduler`
 - `scheduler/` — `AlarmScheduler` manages `AlarmManager` with exact alarms
+- `audio/` — `ChimePlayer` singleton wrapping `MediaPlayer` for mute/restore chimes
 - `service/` — Two foreground services: `OverlayService` (always-on monitor) and `MuteTimerService` (on-demand countdown)
 - `overlay/` — `OverlayViewController` + `ServiceLifecycleOwner` for WindowManager overlay
 - `receiver/` — `VolumeReceiver`, `AlarmReceiver`, `BootReceiver`
@@ -55,10 +56,10 @@ The app has two main user flows:
 Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}` (pushed modal, `id=-1` for new).
 
 ## Tech Stack
-- Kotlin 1.9.23, Compose BOM 2024.04.01, Material3
-- Room 2.6.1, DataStore 1.1.0, Hilt 2.51.1
-- kapt for Room compiler and Hilt compiler
-- Gradle 8.6, AGP 8.3.2
+- Kotlin 2.1.0, Compose BOM 2024.12.01, Material3
+- Room 2.7.0-alpha11, DataStore 1.1.0, Hilt 2.59.2
+- KSP (not kapt) for Room compiler and Hilt compiler
+- AGP 9.1.0
 
 ## Permissions
 `SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` gates exact alarm scheduling.

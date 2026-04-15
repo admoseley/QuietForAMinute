@@ -50,6 +50,12 @@ class SettingsViewModel @Inject constructor(
         initialValue = null
     )
 
+    val themeMode = prefsRepository.themeMode.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = "SYSTEM"
+    )
+
     fun setDefaultVolume(volume: Int) {
         viewModelScope.launch { prefsRepository.setDefaultVolume(volume) }
     }
@@ -72,5 +78,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setRestoreChimeUri(uri: String?) {
         viewModelScope.launch { prefsRepository.setRestoreChimeUri(uri) }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch { prefsRepository.setThemeMode(mode) }
     }
 }
