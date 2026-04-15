@@ -28,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -164,7 +165,7 @@ fun SettingsScreen(
                     Image(
                         painter = painterResource(R.mipmap.ic_launcher_foreground),
                         contentDescription = null,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(128.dp)
                     )
                 }
             }
@@ -320,6 +321,169 @@ fun SettingsScreen(
                             }
                         )
                     }
+                }
+            }
+
+            // Privacy & Terms
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                var showPrivacyPolicy by remember { mutableStateOf(false) }
+                var showTermsOfUse by remember { mutableStateOf(false) }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Privacy Policy",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            textDecoration = TextDecoration.Underline,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.clickable { showPrivacyPolicy = true }
+                    )
+                    Text(
+                        text = "Terms of Use",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            textDecoration = TextDecoration.Underline,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.clickable { showTermsOfUse = true }
+                    )
+                }
+
+                if (showPrivacyPolicy) {
+                    AlertDialog(
+                        onDismissRequest = { showPrivacyPolicy = false },
+                        confirmButton = {
+                            TextButton(onClick = { showPrivacyPolicy = false }) {
+                                Text("Close")
+                            }
+                        },
+                        title = { Text("Privacy Policy") },
+                        text = {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "Quiet For A Minute is committed to protecting your privacy. This application is designed to function entirely offline and does not collect, store, or transmit any personal data.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Data Collection:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "• No personal information (names, emails, addresses, etc.) is collected.\n" +
+                                    "• No usage data or analytics are tracked.\n" +
+                                    "• No device-specific identifiers are harvested.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Permissions:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "The app requests only the permissions necessary for its core functionality (volume control, scheduling, and overlay display). These permissions are used strictly to provide the app's features on your device and never to access your private data.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Third-Party Services:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "The app does not integrate with any third-party services, advertisers, or analytics providers.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "By using Quiet For A Minute, you agree to this simple and transparent privacy approach: your data remains your own, and stays on your device.",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    )
+                }
+
+                if (showTermsOfUse) {
+                    AlertDialog(
+                        onDismissRequest = { showTermsOfUse = false },
+                        confirmButton = {
+                            TextButton(onClick = { showTermsOfUse = false }) {
+                                Text("Close")
+                            }
+                        },
+                        title = { Text("Terms of Use") },
+                        text = {
+                            Column(
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "Acceptance of Terms",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "By downloading or using Quiet For A Minute, you agree to these terms. If you do not agree, please do not use the application.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Free Public Tool",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Quiet For A Minute is provided as a free tool for public use. It is intended for personal, non-commercial use only. The application is not used for profit in any way.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "No Warranties",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "This application is provided \"as is\" without any warranties of any kind, express or implied. While we strive for reliability, we do not guarantee that the app will be error-free or that its functions (such as volume restoration) will work perfectly on all devices or in all scenarios.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Limitation of Liability",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "In no event shall the developer be liable for any damages (including, without limitation, missed notifications, alarms, or calls) arising out of the use or inability to use this application.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "User Responsibility",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "It is your responsibility to ensure that your device's settings (such as battery optimization or notification permissions) allow the app to function as intended.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "Changes to Terms",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "We may update these terms from time to time. Your continued use of the app following any changes indicates your acceptance of the new terms.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    )
                 }
             }
 
