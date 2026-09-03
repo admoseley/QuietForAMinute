@@ -64,7 +64,28 @@ Requires **Android Studio** with JDK 21+ and Android SDK (min SDK 26, compile SD
 
 # Clean build artifacts
 ./gradlew clean
+
+# Build a signed, minified release bundle (needs keystore.properties — see below)
+./gradlew bundleRelease
 ```
+
+### Release signing
+
+`bundleRelease` / `assembleRelease` are minified (R8 + resource shrinking) and signed only when
+a `keystore.properties` file exists at the repo root, pointing at a local `.jks` keystore:
+
+```properties
+storeFile=release-keystore.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+Both passwords **must be identical** — `keytool` defaults to a PKCS12 keystore, which requires
+`storePassword == keyPassword`; a mismatched pair fails signing with a cryptic error rather than
+a clear one. Neither the keystore nor `keystore.properties` are committed (see `.gitignore`);
+without them, debug builds still work normally and `bundleRelease` just produces an unsigned
+bundle. This repo does not currently publish anywhere — no CI job builds or uploads a release yet.
 
 ## Tech Stack
 

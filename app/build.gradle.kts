@@ -1,8 +1,23 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
+}
+
+// Release signing credentials live outside the repo (see .gitignore) in keystore.properties.
+// Loaded lazily so debug builds and any environment without a release key still configure fine
+// (a fresh clone, CI). Store and key password MUST match: keytool defaults to the PKCS12
+// keystore type since JDK 8u, and PKCS12 requires storePassword == keyPassword — a mismatched
+// pair fails signing with a cryptic "Given final block not properly padded" error rather than a
+// clear one, which is what happened the first time this keystore was generated.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -33,6 +48,33 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    signingConfigs {
+        // Only registered when keystore.properties is present, so a checkout without release
+        // credentials (CI, a fresh clone) can still run `assembleDebug` / `bundleDebug` cleanly.
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     compileOptions {
