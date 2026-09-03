@@ -50,6 +50,7 @@
     <string name="permission_dnd_subtitle">Required to turn Do Not Disturb on with a mute</string>
     <string name="permission_granted">Granted</string>
 
+    <string name="settings_version_format">Version %1$s</string>
     <string name="privacy_policy_link">Privacy Policy</string>
     <string name="terms_of_use_link">Terms of Use</string>
 

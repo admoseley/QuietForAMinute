@@ -56,6 +56,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Generates BuildConfig so the Settings screen can read VERSION_NAME rather than
+        // hardcoding a version string that would silently drift from defaultConfig above.
+        buildConfig = true
     }
 
     signingConfigs {

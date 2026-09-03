@@ -567,6 +567,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Chime sound selection via system ringtone picker (supports any notification sound)
 - Light / Dark / System theme selection
 - Permissions status panel with one-tap deep links to system settings (overlay, exact alarms, Do Not Disturb access, battery optimization)
+- App version shown at the bottom of Settings — quote it when reporting a bug
 
 ### Reliability & Background Operation
 - Always-on volume monitor foreground service (silent, persistent notification)

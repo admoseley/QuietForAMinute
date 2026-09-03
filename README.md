@@ -31,6 +31,8 @@ Create recurring mute schedules for events that happen on a regular basis — a 
 - **Overlay toggle** — enable or disable the automatic popup when you mute manually
 - **Chime on mute / Chime on restore** — independently toggle audio feedback, with your choice of any system ringtone
 - **Theme** — Light, Dark, or System default
+- **Version** — the running build's version is shown at the bottom of Settings, read from
+  `BuildConfig` so it can never drift from the APK
 
 ### Permissions
 The app requests these special permissions as needed, each explained in the Settings screen with a direct link to the relevant system settings page:
