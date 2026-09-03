@@ -7,12 +7,23 @@ plugins {
 
 android {
     namespace = "com.admoseley.quietforaminute"
-    compileSdk = 34
+    // Google Play requires targetSdk 36 for new uploads since 31 Aug 2026 (35 since Aug 2025).
+    // API 37 is published but has not been validated against this app's foreground-service and
+    // overlay behaviour yet; bump both values together when that is done.
+    // Compose BOM 2026.08.00 (Compose UI 1.12.0, core-ktx 1.19.0, Navigation 2.10.0, Hilt
+    // Navigation Compose 1.4.0, ...) declares a min compileSdk of 37 in its AAR metadata — building
+    // against 36 fails at checkDebugAarMetadata even though targetSdk 36 satisfies Play's own
+    // minimum. compileSdk and targetSdk are independent knobs; bump only compileSdk here unless
+    // there's a reason to target 37's behavioural changes too.
+    compileSdk = 37
+    // The installed SDK only has the android-37.2 minor platform, not a bare "android-37"; AGP's
+    // compileSdk DSL needs the minor called out explicitly in that case.
+    compileSdkMinor = 2
 
     defaultConfig {
         applicationId = "com.admoseley.quietforaminute"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }

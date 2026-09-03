@@ -1,17 +1,21 @@
 [versions]
-agp = "9.1.0"
-kotlin = "2.1.0"
-ksp = "2.1.0-1.0.29"
-compose-bom = "2024.12.01"
-room = "2.7.0-alpha11"
-datastore = "1.1.0"
-hilt = "2.59.2"
-hilt-navigation-compose = "1.2.0"
-navigation-compose = "2.7.7"
-lifecycle = "2.7.0"
-core-ktx = "1.13.0"
-activity-compose = "1.9.0"
-coroutines = "1.8.0"
+# Toolchain: set by the Android Studio AGP Upgrade Assistant (AGP 9.4.0 bundles its own Kotlin
+# compiler, so the Compose plugin version below must stay in step with it, not with the newest
+# Kotlin release).
+agp = "9.4.0"
+kotlin = "2.2.10"
+ksp = "2.3.6"
+# Libraries: latest stable on Google Maven / Maven Central as of 2026-09-02.
+compose-bom = "2026.08.00"
+room = "2.8.4"
+datastore = "1.2.1"
+hilt = "2.60.1"
+hilt-navigation-compose = "1.4.0"
+navigation-compose = "2.10.0"
+lifecycle = "2.11.0"
+core-ktx = "1.19.0"
+activity-compose = "1.13.0"
+coroutines = "1.11.0"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -23,6 +27,8 @@ compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+# material-icons-extended is frozen at 1.7.8 (still pinned by the BOM) and deprecated upstream.
+# Long-term replacement: vector drawables for the ~12 icons this app actually uses.
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
