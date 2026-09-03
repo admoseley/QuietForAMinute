@@ -17,20 +17,22 @@ No tests exist yet. When added, use `./gradlew test` (unit) and `./gradlew conne
 
 ## Architecture
 
-**Package**: `com.admoseley.quietforaminute` | **Min SDK 26** | **Target SDK 34**
+**Package**: `com.admoseley.quietforaminute` | **Min SDK 26** | **Compile/Target SDK 36**
 
 The app has two main user flows:
 
 ### Manual Mute Flow
-`VolumeReceiver` (dynamic) → `OverlayService.handleMuteDetected()` → `OverlayViewController` shows `MuteDurationDialog` as system overlay → user picks duration → `MuteTimerService` runs countdown → restores volume + plays chime
+`VolumeReceiver` (dynamic; `VOLUME_CHANGED_ACTION` + `STREAM_MUTE_CHANGED_ACTION`, fires only on the transition into zero on STREAM_MUSIC/STREAM_RING) → `OverlayService.handleStreamMuted(streamType)` → `OverlayViewController.show(streamType)` shows `MuteDurationDialog` as system overlay → user picks duration → `MuteTimerService` runs countdown → restores the *same stream* + plays chime
 
 ### Scheduled Mute Flow
-`AlarmManager` → `AlarmReceiver` → starts `MuteTimerService` with schedule ID + duration → same countdown/restore flow → re-schedules next occurrence via `ScheduleRepository.save()`
+`AlarmManager` → `AlarmReceiver` → **re-arms next occurrence immediately** via `ScheduleRepository.save()` → starts `MuteTimerService` with duration → mutes STREAM_MUSIC → countdown/restore flow
 
 ### Key Architectural Decisions
-- **VolumeReceiver must be registered dynamically** inside `OverlayService` — `android.media.VOLUME_CHANGED_ACTION` cannot be received by statically declared receivers on API 26+
-- **System overlay uses `ComposeView` added to `WindowManager`** — requires `ServiceLifecycleOwner` (custom class implementing `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`) set on the view before `setContent()`
-- **`OverlayServiceBridge`** (in-process singleton object in `MuteTimerService.kt`) prevents `VolumeReceiver` from re-triggering when `MuteTimerService` programmatically restores volume
+- **VolumeReceiver must be registered dynamically** inside `OverlayService` — the audio broadcasts cannot be received by statically declared receivers on API 26+
+- **System overlay uses `ComposeView` added to `WindowManager`** — requires `ServiceLifecycleOwner` (custom class implementing `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`) set on the view before `setContent()`. `OverlayViewController.show()` flips its showing flag synchronously before suspending, to prevent a double-window race.
+- **`OverlayServiceBridge`** (`service/OverlayServiceBridge.kt`) is a self-expiring 1.5 s time window, not a counter. `MuteTimerService` calls `markProgrammaticChange()` before every `setStreamVolume`/`adjustStreamVolume`; `OverlayService` ignores mute events inside the window. A counter was previously used and got stuck after restores, swallowing every other real mute.
+- **`defaultVolume` preference is in STREAM_MUSIC index units**; scale it when restoring STREAM_RING (see `MuteTimerService.scaleFromMusicUnits`)
+- **Exact alarms use `SCHEDULE_EXACT_ALARM` only** (user-granted). `USE_EXACT_ALARM` is Play-restricted to alarm/calendar apps. `BootReceiver` also re-arms on `TIMEZONE_CHANGED`, `TIME_SET` and `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`.
 - **Schedule days stored as bitmask** in Room — `bit0=Monday` through `bit6=Sunday`, converted to/from `Set<DayOfWeek>` via extension functions in `ScheduleEntity.kt`
 - **AlarmManager requestCode**: `(scheduleId * 7 + dayOfWeek.value).toInt()` — one `PendingIntent` per (schedule × day) combination
 
@@ -56,10 +58,17 @@ The app has two main user flows:
 Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}` (pushed modal, `id=-1` for new).
 
 ## Tech Stack
-- Kotlin 2.1.0, Compose BOM 2024.12.01, Material3
-- Room 2.7.0-alpha11, DataStore 1.1.0, Hilt 2.59.2
+- Kotlin 2.2.10 (bundled with AGP 9.4.0 — keep the Compose plugin version in step with it), Compose BOM 2026.08.00, Material3
+- Room 2.8.4, DataStore 1.2.1, Hilt 2.60.1, Navigation 2.10.0, Lifecycle 2.11.0
 - KSP (not kapt) for Room compiler and Hilt compiler
-- AGP 9.1.0
+- Gradle 9.6, AGP 9.4.0. All versions in `gradle/libs.versions.toml`.
+
+## Build environment notes
+- No JDK on PATH; use Android Studio's bundled one: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`
+- Build artifacts (`.gradle/`, `app/build/`, `.idea/`, `local.properties`) are git-ignored.
 
 ## Permissions
-`SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` gates exact alarm scheduling.
+`SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling.
+
+## Process
+Work on a branch per fix (`fix/...`, `chore/...`), reference the GitHub issue in the commit message (`Fixes #N`), and never commit directly to `master`.
