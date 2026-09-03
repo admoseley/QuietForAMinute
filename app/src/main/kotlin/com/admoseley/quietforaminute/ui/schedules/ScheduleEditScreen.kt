@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.admoseley.quietforaminute.R
+import com.admoseley.quietforaminute.ui.components.DurationPicker
 import com.admoseley.quietforaminute.ui.schedules.components.DayChipSelector
 import java.time.DayOfWeek
 
@@ -221,32 +222,27 @@ fun ScheduleEditScreen(
 
     // Duration picker dialog
     if (showDurationPicker) {
-        val durationPickerState = rememberTimePickerState(
-            initialHour = state.durationHours,
-            initialMinute = state.durationMinutes,
-            is24Hour = true
-        )
+        var pickerHours by remember { mutableIntStateOf(state.durationHours) }
+        var pickerMinutes by remember { mutableIntStateOf(state.durationMinutes) }
         AlertDialog(
             onDismissRequest = { showDurationPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.setDurationHours(durationPickerState.hour)
-                    viewModel.setDurationMinutes(durationPickerState.minute)
+                    viewModel.setDurationHours(pickerHours)
+                    viewModel.setDurationMinutes(pickerMinutes)
                     showDurationPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDurationPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDurationPicker = false }) { Text(stringResource(R.string.action_cancel)) }
             },
             text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Select Duration (Hours : Minutes)",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    TimePicker(state = durationPickerState)
-                }
+                DurationPicker(
+                    hours = pickerHours,
+                    minutes = pickerMinutes,
+                    onHoursChange = { pickerHours = it },
+                    onMinutesChange = { pickerMinutes = it }
+                )
             }
         )
     }
