@@ -110,6 +110,10 @@ as required status checks instead of just running them.
 
 For detailed step-by-step usage instructions, a full feature list, and answers to common questions, see the **[User Guide](INSTRUCTIONS.md)**.
 
+## Versioning
+
+Current version: **1.0.0**. Follows [Semantic Versioning](https://semver.org/) — see [CHANGELOG.md](CHANGELOG.md) for what changed in each release. Every release gets a CHANGELOG entry, a git tag, and a GitHub Release.
+
 ## License
 
 This project is personal / private software. All rights reserved.

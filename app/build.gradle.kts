@@ -24,8 +24,11 @@ android {
         applicationId = "com.admoseley.quietforaminute"
         minSdk = 26
         targetSdk = 36
+        // Semantic versioning from here on (see CHANGELOG.md): versionName is major.minor.patch,
+        // versionCode increments by 1 on every release regardless of which part of versionName
+        // changed — Play Store only cares that versionCode strictly increases.
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
     }
 
     buildFeatures {
