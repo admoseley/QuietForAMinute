@@ -84,6 +84,9 @@ instructions, not duplicated here. Project-specific: branch names are `fix/...` 
 `master`, and keep README.md / INSTRUCTIONS.md / this file in sync with behavior changes as part
 of the same work — not a follow-up.
 
+## Versioning
+Semantic versioning from v1.0.0 onward (see CHANGELOG.md). `versionName` in `app/build.gradle.kts` is `major.minor.patch`; `versionCode` increments by 1 on every release regardless of which part of `versionName` changed. Every release gets: a CHANGELOG.md entry, `versionName`/`versionCode` bumped in the same commit/PR, a git tag (`vX.Y.Z`) on the merge commit, and a GitHub Release — created after the PR merges, not before.
+
 ## CI & Security
 
 `.github/workflows/ci.yml` runs lint + unit tests + a debug build on every PR and push to
