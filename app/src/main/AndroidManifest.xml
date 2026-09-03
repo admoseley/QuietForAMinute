@@ -67,6 +67,12 @@
             android:name=".receiver.AlarmReceiver"
             android:exported="false" />
 
+        <!-- Backup restore alarm: fires only if MuteTimerService's own restore didn't run in
+             time (see BackupRestoreScheduler / issue #8). Internal only. -->
+        <receiver
+            android:name=".receiver.BackupRestoreReceiver"
+            android:exported="false" />
+
         <!-- Always-on foreground service: monitors volume, shows overlay -->
         <service
             android:name=".service.OverlayService"

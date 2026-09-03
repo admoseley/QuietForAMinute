@@ -122,7 +122,7 @@ as required status checks instead of just running them.
 
 ## Known Limitations
 
-- The mute countdown lives in memory. If Android kills the timer service (aggressive OEM battery management, force-stop, reboot) the volume is not restored automatically.
+- The mute countdown itself lives in `MuteTimerService`'s process memory, but a backup `AlarmManager` alarm and a DataStore-persisted restore target now cover the cases that used to leave volume stuck muted: the OS killing the process (Doze, an OEM battery manager, low memory) or the device rebooting mid-timer. **Force-stopping the app is the one case still not covered** — Android cancels an app's `AlarmManager` alarms as part of force-stop itself, so the backup alarm goes with it; raise your volume manually if you force-stop the app mid-timer.
 - The overlay uses `TYPE_APPLICATION_OVERLAY`, which draws above other apps but **not** above the lock screen.
 - Only one countdown runs at a time; a new mute replaces the running one.
 
