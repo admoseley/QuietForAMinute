@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Single entry point for schedule persistence. Every write here also keeps AlarmManager in sync,
+ * so callers never touch [AlarmScheduler] directly.
+ *
+ * Note: [AlarmScheduler.schedule] returns false when exact alarms are not permitted. That result
+ * is currently swallowed, so a schedule can be saved as "enabled" with nothing armed. Surfacing it
+ * to the edit screen (snackbar + link to the permission page) would be a worthwhile follow-up.
+ */
 @Singleton
 class ScheduleRepository @Inject constructor(
     private val dao: ScheduleDao,
@@ -21,8 +29,11 @@ class ScheduleRepository @Inject constructor(
 
     suspend fun getById(id: Long): Schedule? = dao.getById(id)?.toDomain()
 
+    /** Inserts or updates, then re-arms every weekday slot from scratch. */
     suspend fun save(schedule: Schedule): Schedule {
         if (schedule.id != 0L) {
+            // Cancel all seven slots, not just the currently selected days, so days removed in
+            // this edit do not leave a stale alarm behind.
             alarmScheduler.cancelAllDaysForSchedule(schedule.id)
         }
         val id = dao.upsert(schedule.toEntity())
@@ -38,7 +49,13 @@ class ScheduleRepository @Inject constructor(
 
     suspend fun setEnabled(schedule: Schedule, enabled: Boolean) {
         dao.setEnabled(schedule.id, enabled)
-        if (enabled) alarmScheduler.schedule(schedule)
-        else alarmScheduler.cancelAllDaysForSchedule(schedule.id)
+        if (enabled) {
+            // The caller passes the schedule as it was *before* the toggle, i.e. isEnabled=false.
+            // AlarmScheduler.schedule() early-returns for disabled schedules, so the old code
+            // never armed anything when switching a schedule back on. Pass an updated copy.
+            alarmScheduler.schedule(schedule.copy(isEnabled = true))
+        } else {
+            alarmScheduler.cancelAllDaysForSchedule(schedule.id)
+        }
     }
 }
