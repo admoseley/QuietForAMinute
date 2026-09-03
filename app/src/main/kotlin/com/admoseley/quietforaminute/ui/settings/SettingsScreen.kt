@@ -35,6 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.admoseley.quietforaminute.BuildConfig
 import com.admoseley.quietforaminute.R
 import kotlin.math.roundToInt
 
@@ -434,6 +435,15 @@ fun SettingsScreen(
                         modifier = Modifier.clickable { showTermsOfUse = true }
                     )
                 }
+
+                // Read from BuildConfig, never a hardcoded string — a version in the UI that has
+                // drifted from the one in the APK is worse than showing none at all, since a bug
+                // report would name the wrong build. CalVer means this doubles as the build date.
+                Text(
+                    text = stringResource(R.string.settings_version_format, BuildConfig.VERSION_NAME),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 if (showPrivacyPolicy) {
                     AlertDialog(
