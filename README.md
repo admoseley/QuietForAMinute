@@ -54,7 +54,7 @@ Scheduled mutes are managed by `AlarmManager` with exact-alarm PendingIntents, o
 
 ## Building
 
-Requires **Android Studio** with JDK 21+ and Android SDK (min SDK 26, compile/target SDK 36).
+Requires **Android Studio** with JDK 21+ and Android SDK (min SDK 26, compile SDK 37.2, target SDK 36 — see CLAUDE.md for why those two differ).
 
 ```bash
 # Build a debug APK

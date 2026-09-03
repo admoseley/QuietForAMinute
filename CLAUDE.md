@@ -17,7 +17,7 @@ No tests exist yet. When added, use `./gradlew test` (unit) and `./gradlew conne
 
 ## Architecture
 
-**Package**: `com.admoseley.quietforaminute` | **Min SDK 26** | **Compile/Target SDK 36**
+**Package**: `com.admoseley.quietforaminute` | **Min SDK 26** | **Compile SDK 37.2** | **Target SDK 36**
 
 The app has two main user flows:
 
@@ -66,6 +66,12 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
 ## Build environment notes
 - No JDK on PATH; use Android Studio's bundled one: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`
 - Build artifacts (`.gradle/`, `app/build/`, `.idea/`, `local.properties`) are git-ignored.
+- compileSdk is 37 with `compileSdkMinor = 2` (the SDK only ships `platforms;android-37.2`, not a
+  bare `android-37`) because the current Compose BOM's AAR metadata requires compiling against
+  API 37+; targetSdk stays at 36, the current Play minimum. If Android Studio ever reports
+  "Could not find compile target android-37.2" after this platform is genuinely installed via
+  `sdkmanager`, it's a stale in-IDE cache from before the install — fully quit and reopen Studio
+  rather than just re-syncing, which doesn't re-scan the SDK from disk.
 
 ## Permissions
 `SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling.
