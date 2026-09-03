@@ -2,10 +2,23 @@
 
 All notable changes to Quiet For A Minute are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versioning
-follows [Semantic Versioning](https://semver.org/): `versionName` is `major.minor.patch`;
-`versionCode` increments by 1 on every release regardless of which part changed, since that's all
-Google Play requires.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with one addition:
+every release entry carries a **Known Issues** section, so a release states what is still broken
+and not only what got fixed.
+
+Versioning is [CalVer](https://calver.org/) as of `2026.09.03`:
+
+- `versionName` is `YYYY.MM.DD`, dated to when the work was completed. A second release on the same
+  day appends a sequence — `2026.09.03.1`, then `.2`.
+- `versionCode` is `YYYYMMDD * 10 + N` (N = that day's 0-based sequence), e.g. `202609030`. It is
+  derived rather than a literal timestamp because `versionCode` is a signed 32-bit int that Google
+  Play caps at 2,100,000,000 — a full `YYYYMMDDhhmm` overflows that by roughly 100x.
+- Tags are `vYYYY.MM.DD`, keeping the `v` prefix used by `v1.0.0`.
+
+`1.0.0` below was the only [Semantic Versioning](https://semver.org/) release. Semver was dropped
+because major/minor/patch is a signal aimed at consumers of an API; this is a standalone app with
+no library consumers, so nothing acted on it, and it made frequent small releases awkward to number.
+That release's tag and GitHub Release are left exactly as they were.
 
 ## [1.0.0] — 2026-09-03
 

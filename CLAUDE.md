@@ -108,7 +108,24 @@ instructions, not duplicated here. Project-specific: branch names are `fix/...` 
 of the same work — not a follow-up.
 
 ## Versioning
-Semantic versioning from v1.0.0 onward (see CHANGELOG.md). `versionName` in `app/build.gradle.kts` is `major.minor.patch`; `versionCode` increments by 1 on every release regardless of which part of `versionName` changed. Every release gets: a CHANGELOG.md entry, `versionName`/`versionCode` bumped in the same commit/PR, a git tag (`vX.Y.Z`) on the merge commit, and a GitHub Release — created after the PR merges, not before.
+Calendar versioning (CalVer) from `2026.09.03` onward. `v1.0.0` was the one semver release; its
+tag and GitHub Release stay as they are, and CHANGELOG.md records the switchover.
+
+- **`versionName` = `YYYY.MM.DD`**, dated to when the work was completed — not to some planned
+  release train. A second release on the same day appends a sequence: `2026.09.03.1`, then `.2`.
+- **`versionCode` = `YYYYMMDD * 10 + N`** (N = that day's 0-based sequence), e.g. `202609030`.
+  It is *derived*, not a literal timestamp: `versionCode` is a signed 32-bit int capped by Play at
+  **2,100,000,000**, so a full `YYYYMMDDhhmm` overflows it by ~100x and even `YYMMDDhhmm`
+  (`2609031415`) exceeds it. This form sits near 2.0e8, allows 10 releases/day, and keeps working
+  past the year 9000.
+- Semver was dropped because its major/minor/patch signal is aimed at consumers of an API. This is
+  a standalone app with no library consumers, so nothing acted on it, and it made frequent small
+  releases awkward to number.
+
+Every release gets: a CHANGELOG.md entry (including a **Known Issues** section, so each release
+ships with its outstanding problems stated and not just its fixes), `versionName`/`versionCode`
+bumped in the same commit/PR, a git tag (`vYYYY.MM.DD`, keeping the `v` prefix for continuity with
+`v1.0.0`) on the merge commit, and a GitHub Release — created after the PR merges, not before.
 
 ## CI & Security
 

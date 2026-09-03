@@ -133,7 +133,15 @@ For detailed step-by-step usage instructions, a full feature list, and answers t
 
 ## Versioning
 
-Current version: **1.0.0**. Follows [Semantic Versioning](https://semver.org/) — see [CHANGELOG.md](CHANGELOG.md) for what changed in each release. Every release gets a CHANGELOG entry, a git tag, and a GitHub Release.
+Current version: **2026.09.03**. Follows [Calendar Versioning](https://calver.org/) as
+`YYYY.MM.DD`, dated to when the work was completed; a second release on the same day appends a
+sequence (`2026.09.03.1`). `versionCode` is derived as `YYYYMMDD * 10 + N` because Play caps it at
+2,100,000,000 — a literal timestamp would overflow.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release, and the **Known Issues** section
+of each entry for what's outstanding. Every release gets a CHANGELOG entry, a git tag
+(`vYYYY.MM.DD`), and a GitHub Release. `v1.0.0` was the single semantic-versioning release before
+the switch.
 
 ## License
 

@@ -39,11 +39,19 @@ android {
         applicationId = "com.admoseley.quietforaminute"
         minSdk = 26
         targetSdk = 36
-        // Semantic versioning from here on (see CHANGELOG.md): versionName is major.minor.patch,
-        // versionCode increments by 1 on every release regardless of which part of versionName
-        // changed — Play Store only cares that versionCode strictly increases.
-        versionCode = 1
-        versionName = "1.0.0"
+        // Calendar versioning (CalVer) from 2026.09.03 onward — see CHANGELOG.md for the
+        // switchover from semver, and CLAUDE.md for the full rule.
+        //
+        //   versionName = "YYYY.MM.DD", dated to when the work was completed. A second release on
+        //                 the same day appends a sequence: "2026.09.03.1", "2026.09.03.2".
+        //   versionCode = YYYYMMDD * 10 + N, where N is that day's 0-based sequence.
+        //
+        // versionCode is derived rather than a literal timestamp because it is a signed 32-bit int
+        // that Google Play caps at 2,100,000,000. A full timestamp (202609031415) is ~100x over
+        // that ceiling and even YYMMDDhhmm (2609031415) overflows it. This form stays around
+        // 2.0e8, strictly increases forever, and still reads as the date.
+        versionCode = 202609030
+        versionName = "2026.09.03"
     }
 
     buildFeatures {
