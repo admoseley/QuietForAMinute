@@ -4,16 +4,15 @@
     <!-- Audio control -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- System overlay for the mute dialog -->
+    <!-- System overlay for the mute dialog (special app access, checked at runtime) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Exact alarms for scheduled mutes -->
-    <uses-permission
-        android:name="android.permission.SCHEDULE_EXACT_ALARM"
-        android:maxSdkVersion="32" />
-    <uses-permission
-        android:name="android.permission.USE_EXACT_ALARM"
-        android:minSdkVersion="33" />
+    <!-- Exact alarms for scheduled mutes.
+         SCHEDULE_EXACT_ALARM is the user-granted variant; the Settings screen deep-links to the
+         grant page and BootReceiver re-arms schedules when the grant state changes.
+         USE_EXACT_ALARM was deliberately removed: Google Play only permits it for alarm-clock and
+         calendar apps and rejects submissions that declare it otherwise. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- Re-register alarms after device reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -21,11 +20,13 @@
     <!-- Foreground service notification (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Foreground services (specialUse: volume monitor + mute timer, not continuous media playback) -->
+    <!-- Foreground services (specialUse: volume monitor + mute timer, not continuous media playback).
+         Play Console requires a written justification for the specialUse type at submission. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
-    <!-- Battery optimization exemption request -->
+    <!-- Battery optimization exemption request (declared but not yet requested anywhere in the
+         UI; see the note in OverlayService about OEM battery managers killing the monitor). -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
@@ -46,17 +47,22 @@
             </intent-filter>
         </activity>
 
-        <!-- Re-registers alarms after boot / app update -->
+        <!-- Re-arms alarms after boot / app update / clock or time-zone change / exact-alarm grant.
+             Must be exported to receive system broadcasts; every action listed is a protected
+             system broadcast, so third-party apps cannot spoof them. -->
         <receiver
             android:name=".receiver.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
 
-        <!-- Receives AlarmManager PendingIntents for scheduled mutes -->
+        <!-- Receives AlarmManager PendingIntents for scheduled mutes (internal only) -->
         <receiver
             android:name=".receiver.AlarmReceiver"
             android:exported="false" />
