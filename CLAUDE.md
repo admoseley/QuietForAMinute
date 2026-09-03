@@ -19,7 +19,7 @@ instrumented tests yet; when added, use `./gradlew connectedAndroidTest`.
 Where a class needed a device dependency (`Context`, `android.content.Intent`) just to test pure
 logic, that logic was pulled into a plain Kotlin object/function instead: `AlarmScheduler`'s date
 math lives in `scheduler/AlarmTiming.kt`, and `VolumeReceiver`'s edge-detection decision is
-`VolumeReceiver.Companion.shouldTrigger()`, both exercised directly with primitive values rather
+`VolumeReceiver.Companion.transitionFor()`, both exercised directly with primitive values rather
 than a mocked `Intent`/`Context`.
 
 ## Architecture
@@ -29,13 +29,14 @@ than a mocked `Intent`/`Context`.
 The app has two main user flows:
 
 ### Manual Mute Flow
-`VolumeReceiver` (dynamic; `VOLUME_CHANGED_ACTION` + `STREAM_MUTE_CHANGED_ACTION`, fires only on the transition into zero on STREAM_MUSIC/STREAM_RING) → `OverlayService.handleStreamMuted(streamType)` → `OverlayViewController.show(streamType)` shows `MuteDurationDialog` as system overlay → user picks duration → `MuteTimerService` runs countdown → restores the *same stream* + plays chime
+`VolumeReceiver` (dynamic; `VOLUME_CHANGED_ACTION` + `STREAM_MUTE_CHANGED_ACTION`, reports a `VolumeTransition` on either edge across zero on STREAM_MUSIC/STREAM_RING) → `OverlayService.handleVolumeTransition()` → `handleStreamMuted(streamType)` → `OverlayViewController.show(streamType)` shows `MuteDurationDialog` as system overlay → user picks duration → `MuteTimerService` runs countdown → restores the *same stream* + plays chime
 
 ### Scheduled Mute Flow
 `AlarmManager` → `AlarmReceiver` → **re-arms next occurrence immediately** via `ScheduleRepository.save()` → starts `MuteTimerService` with duration → mutes STREAM_MUSIC → countdown/restore flow
 
 ### Key Architectural Decisions
 - **VolumeReceiver must be registered dynamically** inside `OverlayService` — the audio broadcasts cannot be received by statically declared receivers on API 26+
+- **A manual volume restore cancels a running timer** (issue #42): `VolumeReceiver` reports `VolumeTransition.UNMUTED` as well as `MUTED`; `OverlayService.handleStreamUnmuted()` checks `PreferencesRepository.pendingRestore` (non-null only while a countdown runs) and, if a timer is live, sends `MuteTimerService.ACTION_CANCEL_TIMER`. The service tears down the countdown, backup alarm and persisted record, shows a Toast and plays the restore chime, but deliberately does **not** set the volume — the user already did. The `OverlayServiceBridge` programmatic window is what keeps the timer's *own* end-of-countdown restore from being misread as a manual one and cancelling the timer that just completed.
 - **System overlay uses `ComposeView` added to `WindowManager`** — requires `ServiceLifecycleOwner` (custom class implementing `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`) set on the view before `setContent()`. `OverlayViewController.show()` flips its showing flag synchronously before suspending, to prevent a double-window race.
 - **`OverlayServiceBridge`** (`service/OverlayServiceBridge.kt`) is a self-expiring 1.5 s time window, not a counter. `MuteTimerService` calls `markProgrammaticChange()` before every `setStreamVolume`/`adjustStreamVolume`; `OverlayService` ignores mute events inside the window. A counter was previously used and got stuck after restores, swallowing every other real mute.
 - **`defaultVolume` preference is in STREAM_MUSIC index units**; scale it when restoring STREAM_RING via the pure `scaleVolumeUnits()` top-level function in `service/VolumeRestorer.kt` (unit-tested in `VolumeRestorerTest`)

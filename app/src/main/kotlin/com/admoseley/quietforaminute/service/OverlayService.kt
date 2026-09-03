@@ -22,6 +22,7 @@ import com.admoseley.quietforaminute.audio.ChimePlayer
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
 import com.admoseley.quietforaminute.overlay.OverlayViewController
 import com.admoseley.quietforaminute.receiver.VolumeReceiver
+import com.admoseley.quietforaminute.receiver.VolumeTransition
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
 import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
@@ -77,7 +78,7 @@ class OverlayService : Service() {
 
         // VOLUME_CHANGED / STREAM_MUTE_CHANGED are system broadcasts: RECEIVER_NOT_EXPORTED still
         // receives them (they originate from the system UID) while refusing any other sender.
-        val receiver = VolumeReceiver(onStreamMuted = ::handleStreamMuted)
+        val receiver = VolumeReceiver(onTransition = ::handleVolumeTransition)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(receiver, VolumeReceiver.intentFilter(), Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -88,14 +89,45 @@ class OverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
-    private fun handleStreamMuted(streamType: Int) {
+    private fun handleVolumeTransition(transition: VolumeTransition, streamType: Int) {
         // Our own setStreamVolume / adjustStreamVolume calls arrive here as well. Anything inside
-        // the window MuteTimerService opened right before changing volume is not a user action.
+        // the window MuteTimerService opened right before changing volume is not a user action —
+        // this is also what stops the timer's *own* end-of-countdown restore from looking like
+        // the user manually restoring volume and cancelling the timer that just finished.
         if (OverlayServiceBridge.isWithinProgrammaticWindow()) {
             Log.d(TAG, "Ignoring programmatic volume change on stream $streamType")
             return
         }
 
+        when (transition) {
+            VolumeTransition.MUTED -> handleStreamMuted(streamType)
+            VolumeTransition.UNMUTED -> handleStreamUnmuted(streamType)
+        }
+    }
+
+    /**
+     * The user brought volume back themselves while a timer was counting down, so the timer has
+     * nothing left to do — cancel it rather than leaving it to re-set the volume later (issue
+     * #42). Checking [PreferencesRepository.pendingRestore] first means an ordinary volume nudge
+     * with no timer running costs nothing but a DataStore read.
+     */
+    private fun handleStreamUnmuted(streamType: Int) {
+        serviceScope.launch {
+            if (prefsRepository.pendingRestore.first() == null) return@launch
+
+            Log.d(TAG, "Manual restore on stream $streamType — cancelling the running timer")
+            try {
+                startService(
+                    Intent(this@OverlayService, MuteTimerService::class.java)
+                        .setAction(MuteTimerService.ACTION_CANCEL_TIMER)
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to deliver timer cancel", e)
+            }
+        }
+    }
+
+    private fun handleStreamMuted(streamType: Int) {
         serviceScope.launch {
             if (!prefsRepository.overlayEnabled.first()) return@launch
 

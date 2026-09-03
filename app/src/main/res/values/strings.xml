@@ -131,4 +131,5 @@
     <string name="notif_permission_title">Permission needed</string>
     <string name="notif_permission_text">Tap to allow %1$s to show overlays</string>
     <string name="toast_volume_restored">System volume has been restored</string>
+    <string name="toast_manual_restore_timer_cancelled">Manual restore of volume, timer has been cancelled</string>
 </resources>
