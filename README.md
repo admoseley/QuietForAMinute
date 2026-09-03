@@ -30,14 +30,13 @@ Create recurring mute schedules for events that happen on a regular basis — a 
 - **Theme** — Light, Dark, or System default
 
 ### Permissions
-The app requires two special permissions to operate:
+The app requests these special permissions as needed, each explained in the Settings screen with a direct link to the relevant system settings page:
 
 | Permission | Purpose |
 |---|---|
 | Display over other apps | Show the mute timer popup on top of whatever app is open |
 | Schedule exact alarms | Fire scheduled mutes at a precise time (denied by default on Android 14+, grant from Settings) |
-
-Both are requested only when needed and explained in the Settings screen with direct links to the relevant system settings page.
+| Ignore battery optimization | Keeps the volume-monitor service from being killed by aggressive OEM battery managers — a likely cause of the popup not appearing consistently |
 
 ## How It Works
 

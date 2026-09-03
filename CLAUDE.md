@@ -82,7 +82,7 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
   rather than just re-syncing, which doesn't re-scan the SDK from disk.
 
 ## Permissions
-`SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling.
+`SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` has a Settings row (`PowerManager.isIgnoringBatteryOptimizations()` + `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) — OEM battery managers killing `OverlayService` is a likely cause of the popup not appearing consistently.
 
 ## Process
 Full workflow (file an issue → branch → work with comments and doc updates → logical commits →
