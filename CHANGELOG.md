@@ -20,10 +20,10 @@ because major/minor/patch is a signal aimed at consumers of an API; this is a st
 no library consumers, so nothing acted on it, and it made frequent small releases awkward to number.
 That release's tag and GitHub Release are left exactly as they were.
 
-## [Unreleased]
+## [2026.09.03]
 
-Merged to `master` but not yet tagged or released. `versionName`/`versionCode` are bumped as part
-of cutting a release, not here.
+First CalVer release, and the first release since `1.0.0`. See the header above for why versioning
+changed.
 
 ### Added
 - Do Not Disturb option (#45): an "Also turn on Do Not Disturb" switch in the mute popup and on
@@ -41,6 +41,24 @@ of cutting a release, not here.
   exactly where you set it rather than being snapped to the configured restore level.
 - Room database is now version 2, with a real `MIGRATION_1_2` adding the schedules' `dndEnabled`
   column. Existing schedules are preserved and default to DND off.
+- Versioning switched from Semantic Versioning to CalVer (#47): `versionName` is now the date the
+  work was completed, `versionCode` is `YYYYMMDD * 10 + N`. The app's version is now shown at the
+  bottom of the Settings screen (#49), read from `BuildConfig` so it cannot drift from the APK.
+
+### Known Issues
+- **Do Not Disturb has not been verified on a physical device.** The logic and its recovery paths
+  are unit-tested and the build is clean, but the DND grant flow and the interruption filter itself
+  have only been reasoned about, not exercised on hardware.
+- **targetSdk stays at 36** (#14). Android 17 (API 37) hardens background audio in a way that makes
+  the volume APIs fail silently for apps targeting 37 without a while-in-use foreground service
+  type. Compiling against 37 is fine; targeting it is not, until that is resolved.
+- **Force-stopping the app defeats the mute-timer safety net.** Android cancels an app's own
+  AlarmManager alarms as part of a force-stop, so the backup restore alarm goes with it and the
+  volume will not come back on its own. Process kills and reboots *are* covered.
+- **OEM battery managers can kill the volume monitor**, which stops the mute popup appearing at
+  all. Granting the battery-optimization exemption in Settings is the mitigation.
+- The mute popup cannot appear over the lock screen — `TYPE_APPLICATION_OVERLAY` is not permitted
+  above it for third-party apps.
 
 ## [1.0.0] — 2026-09-03
 
