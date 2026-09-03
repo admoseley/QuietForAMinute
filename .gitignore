@@ -17,6 +17,7 @@ local.properties
 *.aab
 *.ap_
 *.dex
+*.hprof
 captures/
 .externalNativeBuild/
 .cxx/
