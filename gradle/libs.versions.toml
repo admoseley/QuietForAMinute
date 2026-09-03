@@ -1,9 +1,10 @@
 [versions]
-# Toolchain: set by the Android Studio AGP Upgrade Assistant (AGP 9.4.0 bundles its own Kotlin
-# compiler, so the Compose plugin version below must stay in step with it, not with the newest
-# Kotlin release).
+# Toolchain: AGP is set by the Android Studio AGP Upgrade Assistant. `kotlin` here drives the
+# Compose compiler plugin only — an earlier comment claimed it had to stay pinned to whatever
+# Kotlin AGP bundles (2.2.10), but that was never actually verified; 2.4.10 builds and tests
+# clean against AGP 9.4.0, so the plugin can track current Kotlin independently.
 agp = "9.4.0"
-kotlin = "2.2.10"
+kotlin = "2.4.10"
 ksp = "2.3.11"
 # Libraries: latest stable on Google Maven / Maven Central as of 2026-09-02.
 compose-bom = "2026.08.00"
