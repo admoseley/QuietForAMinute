@@ -76,4 +76,6 @@ dependencies {
     implementation(libs.hilt.lifecycle.viewmodel.compose)
 
     implementation(libs.coroutines.android)
+
+    testImplementation(libs.junit)
 }
