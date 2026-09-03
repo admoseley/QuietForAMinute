@@ -77,4 +77,20 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
 `SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling.
 
 ## Process
-Work on a branch per fix (`fix/...`, `chore/...`), reference the GitHub issue in the commit message (`Fixes #N`), and never commit directly to `master`.
+Full workflow (file an issue → branch → work with comments and doc updates → logical commits →
+PR → merge → delete branch → confirm issue closed) lives in the global `~/.claude/CLAUDE.md`
+instructions, not duplicated here. Project-specific: branch names are `fix/...` / `chore/...` /
+`feat/...`, reference the issue with `Fixes #N` in the commit body, never commit directly to
+`master`, and keep README.md / INSTRUCTIONS.md / this file in sync with behavior changes as part
+of the same work — not a follow-up.
+
+## CI & Security
+
+`.github/workflows/ci.yml` runs lint + unit tests + a debug build on every PR and push to
+`master`. `.github/workflows/secret-scan.yml` runs the open-source `gitleaks` CLI (not the
+`gitleaks-action` wrapper, which needs a paid license for private repos) on every PR and push.
+`.github/dependabot.yml` opens weekly PRs for outdated Gradle/Actions dependencies; Dependabot
+security alerts are enabled repo-wide. None of these are enforced as *required* status checks —
+branch protection needs GitHub Pro for a private repo, which this repo doesn't have. CodeQL and
+native secret scanning are gated behind GitHub Advanced Security and are not set up (see issue
+#21 for what was deliberately left out and why).

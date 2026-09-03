@@ -1,0 +1,49 @@
+name: CI
+
+# Build/lint/test gate for every PR and every push to master. This intentionally does not publish
+# or sign anything yet — the release signing config (see issue #15) isn't finished, so there's
+# nothing safe to ship automatically. Once that lands, a separate publish job can depend on this
+# one passing first.
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v4
+
+      # compileSdk is 37.2 (see CLAUDE.md for why) — the hosted runner image doesn't ship that
+      # platform by default, so install it explicitly. Mirrors the local fix for the same
+      # "Could not find compile target android-37.2" error hit during development.
+      - name: Install compile SDK platform
+        run: sdkmanager "platforms;android-37.2"
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Lint
+        run: ./gradlew lint --console=plain
+
+      - name: Unit tests
+        run: ./gradlew test --console=plain
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --console=plain
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
