@@ -102,6 +102,8 @@ class ScheduleEditViewModel @Inject constructor(
             _state.update { it.copy(daysError = "Select at least one day") }
             hasError = true
         }
+        // Scheduled mutes need a floor: a 1-minute mute is indistinguishable from an alarm glitch
+        // and the restore chime would fire almost immediately. Keep INSTRUCTIONS.md in sync.
         val totalMinutes = s.durationHours * 60 + s.durationMinutes
         if (totalMinutes < 5) {
             _state.update { it.copy(durationError = "Duration must be at least 5 minutes") }

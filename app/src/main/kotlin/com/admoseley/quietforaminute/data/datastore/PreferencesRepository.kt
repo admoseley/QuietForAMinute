@@ -32,6 +32,11 @@ class PreferencesRepository @Inject constructor(
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
+    /**
+     * Stored in STREAM_MUSIC index units (0..getStreamMaxVolume(STREAM_MUSIC)), NOT a percentage.
+     * Consumers restoring a different stream must scale it (see MuteTimerService). The value is
+     * also clamped on every read site because the device max can differ after a restore/migration.
+     */
     val defaultVolume: Flow<Int> = context.dataStore.data
         .map { prefs -> prefs[KEY_DEFAULT_VOLUME] ?: 7 }
 
