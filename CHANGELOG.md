@@ -7,6 +7,28 @@ follows [Semantic Versioning](https://semver.org/): `versionName` is `major.mino
 `versionCode` increments by 1 on every release regardless of which part changed, since that's all
 Google Play requires.
 
+## [Unreleased]
+
+Merged to `master` but not yet tagged or released. `versionName`/`versionCode` are bumped as part
+of cutting a release, not here.
+
+### Added
+- Do Not Disturb option (#45): an "Also turn on Do Not Disturb" switch in the mute popup and on
+  each schedule. DND is applied *on top of* the volume mute for the same duration and lifted when
+  the timer ends — including on the process-killed and reboot fallback paths, so a lost countdown
+  can never strand the device in DND. DND the user enabled themselves is never cleared by the app.
+  Requires the new `ACCESS_NOTIFICATION_POLICY` special access, surfaced as a Settings permission
+  row; the app is fully functional without it.
+- Duration fields are now editable (#41): type an exact number of hours or minutes instead of only
+  using the presets or stepping by 5. Minutes range widened from 0–55 to 0–59.
+
+### Changed
+- Raising the volume by hand during a running timer now cancels it (#42), with a toast reading
+  "Manual restore of volume, timer has been cancelled" and the restore chime. Your volume is left
+  exactly where you set it rather than being snapped to the configured restore level.
+- Room database is now version 2, with a real `MIGRATION_1_2` adding the schedules' `dndEnabled`
+  column. Existing schedules are preserved and default to DND off.
+
 ## [1.0.0] — 2026-09-03
 
 First versioned release.

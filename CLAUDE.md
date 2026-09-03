@@ -29,12 +29,24 @@ than a mocked `Intent`/`Context`.
 The app has two main user flows:
 
 ### Manual Mute Flow
-`VolumeReceiver` (dynamic; `VOLUME_CHANGED_ACTION` + `STREAM_MUTE_CHANGED_ACTION`, reports a `VolumeTransition` on either edge across zero on STREAM_MUSIC/STREAM_RING) → `OverlayService.handleVolumeTransition()` → `handleStreamMuted(streamType)` → `OverlayViewController.show(streamType)` shows `MuteDurationDialog` as system overlay → user picks duration → `MuteTimerService` runs countdown → restores the *same stream* + plays chime
+`VolumeReceiver` (dynamic; `VOLUME_CHANGED_ACTION` + `STREAM_MUTE_CHANGED_ACTION`, reports a `VolumeTransition` on either edge across zero on STREAM_MUSIC/STREAM_RING) → `OverlayService.handleVolumeTransition()` → `handleStreamMuted(streamType)` → `OverlayViewController.show(streamType)` shows `MuteDurationDialog` as system overlay → user picks duration (and optionally Do Not Disturb) → `MuteTimerService` runs countdown → restores the *same stream* + clears DND + plays chime
 
 ### Scheduled Mute Flow
 `AlarmManager` → `AlarmReceiver` → **re-arms next occurrence immediately** via `ScheduleRepository.save()` → starts `MuteTimerService` with duration → mutes STREAM_MUSIC → countdown/restore flow
 
 ### Key Architectural Decisions
+- **Do Not Disturb is additive, never a replacement** (issue #45). `DndController` wraps
+  `NotificationManager.setInterruptionFilter(INTERRUPTION_FILTER_PRIORITY)`, gated on the
+  `ACCESS_NOTIFICATION_POLICY` special access (`canControlDnd()`; every method no-ops without it).
+  `enable()` returns whether *this call* changed DND — false both when it couldn't and when DND was
+  already on — and that boolean, not a live "is DND on?" check, is what later authorises clearing it.
+  Clearing DND the user set themselves would undo a setting the app never owned. The flag rides
+  along in `PendingRestore` and in the backup alarm's extras so **all three** restore paths
+  (`MuteTimerService`, `BackupRestoreReceiver`, `BootReceiver`) clear it — otherwise a killed process
+  strands the device in DND with no timer left to end it. `VolumeRestorer.restore()` clears DND
+  *before* touching volume: an active DND policy can make raising the ringer out of silent throw.
+  When DND is on and the trigger stream was STREAM_RING, media is muted too (`mediaMuted`, same
+  we-only-undo-what-we-did rule) since DND alone doesn't silence playback.
 - **VolumeReceiver must be registered dynamically** inside `OverlayService` — the audio broadcasts cannot be received by statically declared receivers on API 26+
 - **A manual volume restore cancels a running timer** (issue #42): `VolumeReceiver` reports `VolumeTransition.UNMUTED` as well as `MUTED`; `OverlayService.handleStreamUnmuted()` checks `PreferencesRepository.pendingRestore` (non-null only while a countdown runs) and, if a timer is live, sends `MuteTimerService.ACTION_CANCEL_TIMER`. The service tears down the countdown, backup alarm and persisted record, shows a Toast and plays the restore chime, but deliberately does **not** set the volume — the user already did. The `OverlayServiceBridge` programmatic window is what keeps the timer's *own* end-of-countdown restore from being misread as a manual one and cancelling the timer that just completed.
 - **System overlay uses `ComposeView` added to `WindowManager`** — requires `ServiceLifecycleOwner` (custom class implementing `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`) set on the view before `setContent()`. `OverlayViewController.show()` flips its showing flag synchronously before suspending, to prevent a double-window race.
@@ -48,12 +60,14 @@ The app has two main user flows:
 
 ### Layer Organization
 - `domain/model/` — `Schedule` data class (pure Kotlin, no Android deps)
-- `data/db/` — Room database, DAO, entity with domain mapping extensions
+- `data/db/` — Room database (v2; `AppDatabase.MIGRATION_1_2` adds `dndEnabled`), DAO, entity with
+  domain mapping extensions. The builder keeps `fallbackToDestructiveMigration`, so **any** new
+  version bump needs a registered migration or every saved schedule is silently deleted on upgrade.
 - `data/datastore/` — `PreferencesRepository` wrapping DataStore (default volume, overlay enabled, pending mute-restore state)
 - `data/repository/` — `ScheduleRepository` facade over DAO + `AlarmScheduler`
 - `scheduler/` — `AlarmScheduler` manages scheduled-mute `AlarmManager` alarms; `BackupRestoreScheduler` manages the one-off backup restore alarm
 - `audio/` — `ChimePlayer` singleton wrapping `MediaPlayer` for mute/restore chimes
-- `service/` — Two foreground services: `OverlayService` (always-on monitor) and `MuteTimerService` (on-demand countdown); `VolumeRestorer` holds the shared restore logic they and the receivers below all use
+- `service/` — Two foreground services: `OverlayService` (always-on monitor) and `MuteTimerService` (on-demand countdown); `VolumeRestorer` holds the shared restore logic they and the receivers below all use; `DndController` owns the Do Not Disturb interruption filter
 - `overlay/` — `OverlayViewController` + `ServiceLifecycleOwner` for WindowManager overlay
 - `receiver/` — `VolumeReceiver`, `AlarmReceiver`, `BootReceiver`, `BackupRestoreReceiver`
 - `ui/` — Jetpack Compose screens with `@HiltViewModel` ViewModels, plus shared `ui/components/` (e.g. `DurationPicker`)
@@ -62,7 +76,7 @@ The app has two main user flows:
 - `@HiltAndroidApp`: `QuietApplication`
 - `@AndroidEntryPoint`: `MainActivity`, `OverlayService`, `MuteTimerService`, `BootReceiver`, `BackupRestoreReceiver`
 - Modules: `DatabaseModule` (Room DB + DAO), `AppModule` (ChimePlayer)
-- `PreferencesRepository`, `ScheduleRepository`, `AlarmScheduler`, `BackupRestoreScheduler`, `VolumeRestorer` are `@Singleton` with `@Inject constructor`
+- `PreferencesRepository`, `ScheduleRepository`, `AlarmScheduler`, `BackupRestoreScheduler`, `VolumeRestorer`, `DndController` are `@Singleton` with `@Inject constructor`
 
 ### Navigation
 Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}` (pushed modal, `id=-1` for new).
@@ -97,6 +111,10 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
   rather than just re-syncing, which doesn't re-scan the SDK from disk.
 
 ## Permissions
+`ACCESS_NOTIFICATION_POLICY` is a special access checked at runtime
+(`NotificationManager.isNotificationPolicyAccessGranted`), granted via
+`ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS` — a global list with no per-package `Uri`, unlike the
+other permission rows. It gates the DND option only; the app is fully functional without it.
 `SYSTEM_ALERT_WINDOW` is checked lazily at runtime (`Settings.canDrawOverlays()`). The Settings screen shows permission status with grant buttons. `POST_NOTIFICATIONS` is requested on first launch (Android 13+). `SCHEDULE_EXACT_ALARM` (user-granted, denied by default on 14+) gates exact alarm scheduling. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` has a Settings row (`PowerManager.isIgnoringBatteryOptimizations()` + `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) — OEM battery managers killing `OverlayService` is a likely cause of the popup not appearing consistently.
 
 ## Process
