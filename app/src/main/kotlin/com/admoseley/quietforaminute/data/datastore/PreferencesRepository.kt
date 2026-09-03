@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -16,6 +17,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "quiet_prefs")
+
+/**
+ * A mute countdown's restore target, persisted to disk so it survives the process (and the
+ * device) being killed. [manualRestoreVolume] mirrors [com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME]
+ * — -1 means "use the default restore volume at restore time", not a literal index.
+ */
+data class PendingRestore(
+    val endEpochMillis: Long,
+    val streamType: Int,
+    val manualRestoreVolume: Int
+)
 
 @Singleton
 class PreferencesRepository @Inject constructor(
@@ -30,6 +42,9 @@ class PreferencesRepository @Inject constructor(
         val KEY_MUTE_CHIME_URI = stringPreferencesKey("mute_chime_uri")
         val KEY_RESTORE_CHIME_URI = stringPreferencesKey("restore_chime_uri")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_PENDING_RESTORE_END_EPOCH = longPreferencesKey("pending_restore_end_epoch")
+        val KEY_PENDING_RESTORE_STREAM_TYPE = intPreferencesKey("pending_restore_stream_type")
+        val KEY_PENDING_RESTORE_VOLUME = intPreferencesKey("pending_restore_volume")
     }
 
     /**
@@ -57,6 +72,19 @@ class PreferencesRepository @Inject constructor(
 
     val themeMode: Flow<String> = context.dataStore.data
         .map { prefs -> prefs[KEY_THEME_MODE] ?: "SYSTEM" }
+
+    /**
+     * Non-null exactly while a mute countdown (manual or scheduled) is running — the safety net
+     * that lets [com.admoseley.quietforaminute.receiver.BackupRestoreReceiver] and
+     * [com.admoseley.quietforaminute.receiver.BootReceiver] restore volume even if
+     * MuteTimerService's process (and, for BootReceiver, the device itself) was killed mid-timer.
+     */
+    val pendingRestore: Flow<PendingRestore?> = context.dataStore.data.map { prefs ->
+        val endEpoch = prefs[KEY_PENDING_RESTORE_END_EPOCH] ?: return@map null
+        val streamType = prefs[KEY_PENDING_RESTORE_STREAM_TYPE] ?: return@map null
+        val manualRestoreVolume = prefs[KEY_PENDING_RESTORE_VOLUME] ?: return@map null
+        PendingRestore(endEpoch, streamType, manualRestoreVolume)
+    }
 
     suspend fun setDefaultVolume(volume: Int) {
         val max = context.getSystemService(AudioManager::class.java)
@@ -92,5 +120,21 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { it[KEY_THEME_MODE] = mode }
+    }
+
+    suspend fun savePendingRestore(endEpochMillis: Long, streamType: Int, manualRestoreVolume: Int) {
+        context.dataStore.edit {
+            it[KEY_PENDING_RESTORE_END_EPOCH] = endEpochMillis
+            it[KEY_PENDING_RESTORE_STREAM_TYPE] = streamType
+            it[KEY_PENDING_RESTORE_VOLUME] = manualRestoreVolume
+        }
+    }
+
+    suspend fun clearPendingRestore() {
+        context.dataStore.edit {
+            it.remove(KEY_PENDING_RESTORE_END_EPOCH)
+            it.remove(KEY_PENDING_RESTORE_STREAM_TYPE)
+            it.remove(KEY_PENDING_RESTORE_VOLUME)
+        }
     }
 }

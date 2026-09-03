@@ -18,6 +18,7 @@ import com.admoseley.quietforaminute.QuietApplication.Companion.CHANNEL_TIMER
 import com.admoseley.quietforaminute.R
 import com.admoseley.quietforaminute.audio.ChimePlayer
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
+import com.admoseley.quietforaminute.scheduler.BackupRestoreScheduler
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
 import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
@@ -34,7 +35,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 /**
  * Foreground service that owns a single mute countdown and restores volume when it ends.
@@ -48,20 +48,26 @@ import kotlin.math.roundToInt
  * Only one countdown runs at a time. A new start intent cancels the previous countdown *without*
  * restoring, and the new duration takes over (documented behaviour, see INSTRUCTIONS.md §3.5).
  *
- * Re-arming the next occurrence of a schedule is NOT done here any more — it happens in
- * `AlarmReceiver` the moment the alarm fires, so a killed process or a replaced countdown can no
- * longer silently stop a schedule from repeating.
- *
- * Known limitation: the countdown lives in process memory. If Android kills the process (low
- * memory, aggressive OEM battery management, user force-stop) the volume is never restored. A more
- * robust design would persist the end time and register a backup `AlarmManager` alarm that
- * performs the restore even when this service is gone.
+ * Reliability (issue #8): the countdown itself still lives in process memory — if Android kills
+ * this process (low memory, an OEM battery manager, force-stop) mid-countdown, the delay loop
+ * simply stops. Two things now cover that instead of leaving the user muted indefinitely:
+ *  1. [BackupRestoreScheduler] arms an exact `AlarmManager` alarm for shortly after the expected
+ *     end time. AlarmManager alarms are a separate OS subsystem from this service's process, so
+ *     they fire even if this process is long gone. Normally this alarm is cancelled below the
+ *     moment the primary restore succeeds, so it never fires under normal operation.
+ *  2. The restore target is persisted to DataStore ([PreferencesRepository.savePendingRestore]).
+ *     AlarmManager alarms do **not** survive a reboot, so if the device itself restarts
+ *     mid-countdown, [com.admoseley.quietforaminute.receiver.BootReceiver] reads this record back
+ *     and either restores immediately (if the end time already passed) or re-arms the backup
+ *     alarm for whatever time is left.
  */
 @AndroidEntryPoint
 class MuteTimerService : Service() {
 
     @Inject lateinit var prefsRepository: PreferencesRepository
     @Inject lateinit var chimePlayer: ChimePlayer
+    @Inject lateinit var volumeRestorer: VolumeRestorer
+    @Inject lateinit var backupRestoreScheduler: BackupRestoreScheduler
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var countdownJob: Job? = null
@@ -98,6 +104,8 @@ class MuteTimerService : Service() {
         }
 
         // Cancel any existing countdown (e.g. a scheduled mute fires while a manual one is active).
+        // This also implicitly retires the previous countdown's backup alarm, since the one armed
+        // below immediately replaces it (same fixed requestCode — see BackupRestoreScheduler).
         countdownJob?.cancel()
         countdownJob = serviceScope.launch {
             runCountdown(durationMinutes, source, restoreVolume, streamType)
@@ -119,8 +127,21 @@ class MuteTimerService : Service() {
         if (source == SOURCE_ALARM) muteForScheduledAlarm(streamType)
 
         // elapsedRealtime is immune to wall-clock changes (NTP sync, time zone edits, manual
-        // adjustment), so the countdown can neither be shortened nor extended by them.
-        val endTime = SystemClock.elapsedRealtime() + totalMinutes.toLong() * 60_000L
+        // adjustment), so the countdown can neither be shortened nor extended by them — used for
+        // the in-process loop below. The backup alarm and persisted record need a value that
+        // means something after a process death or reboot, so they use a wall-clock epoch instead
+        // computed from the same instant; a wall-clock jump mid-countdown could drift the two
+        // apart, the same trade-off AlarmScheduler already accepts for scheduled mutes.
+        val startElapsed = SystemClock.elapsedRealtime()
+        val endTime = startElapsed + totalMinutes.toLong() * 60_000L
+        val endEpochMillis = System.currentTimeMillis() + totalMinutes.toLong() * 60_000L
+
+        prefsRepository.savePendingRestore(endEpochMillis, streamType, manualRestoreVolume)
+        backupRestoreScheduler.schedule(
+            endEpochMillis + BackupRestoreScheduler.TRIGGER_BUFFER_MS,
+            streamType,
+            manualRestoreVolume
+        )
 
         while (SystemClock.elapsedRealtime() < endTime) {
             val remainingMs = endTime - SystemClock.elapsedRealtime()
@@ -132,6 +153,12 @@ class MuteTimerService : Service() {
 
         Log.d(TAG, "Countdown complete, restoring stream $streamType")
         restoreVolume(streamType, manualRestoreVolume)
+
+        // The primary restore just ran, so the backup alarm and its persisted record are no
+        // longer needed — clearing them here is what keeps the backup alarm from ever actually
+        // firing on the normal, nothing-went-wrong path.
+        backupRestoreScheduler.cancel()
+        prefsRepository.clearPendingRestore()
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -151,35 +178,12 @@ class MuteTimerService : Service() {
         }
     }
 
-    /**
-     * Restores the stream that was muted.
-     *
-     * [manualRestoreVolume] comes from the popup slider and is already in the target stream's
-     * index units. The default from Settings is stored in STREAM_MUSIC units, so it is scaled
-     * proportionally when the muted stream was the ringer (whose max is usually lower).
-     */
+    /** Volume-setting itself is shared with the backup/boot restore paths — see [VolumeRestorer]. */
     private suspend fun restoreVolume(streamType: Int, manualRestoreVolume: Int) {
-        val targetMax = audioManager.getStreamMaxVolume(streamType)
-        val volume = if (manualRestoreVolume >= 0) {
-            manualRestoreVolume
-        } else {
-            val default = prefsRepository.defaultVolume.first()
-            scaleFromMusicUnits(default, streamType, targetMax)
-        }.coerceIn(0, targetMax)
+        Log.d(TAG, "Executing restoreVolume()")
         val chimeEnabled = prefsRepository.chimeOnRestore.first()
 
-        // Open the window BEFORE touching the volume so the broadcasts land inside it.
-        OverlayServiceBridge.markProgrammaticChange()
-        try {
-            // If the user muted with the volume-panel icon the stream carries a mute *flag* and
-            // the index alone will not bring sound back; clear the flag first (no-op otherwise).
-            audioManager.adjustStreamVolume(streamType, AudioManager.ADJUST_UNMUTE, 0)
-            audioManager.setStreamVolume(streamType, volume, 0)
-            Log.d(TAG, "Stream $streamType restored to $volume/$targetMax")
-        } catch (e: SecurityException) {
-            // Raising the ringer out of silent can be blocked by Do Not Disturb policy.
-            Log.w(TAG, "Unable to restore stream $streamType", e)
-        }
+        volumeRestorer.restore(streamType, manualRestoreVolume)
 
         Toast.makeText(this, getString(R.string.toast_volume_restored), Toast.LENGTH_SHORT).show()
 
@@ -189,12 +193,6 @@ class MuteTimerService : Service() {
             chimePlayer.playChime(chimeUri)
             delay(1_000) // keep the service alive long enough for the chime to play
         }
-    }
-
-    private fun scaleFromMusicUnits(musicUnits: Int, streamType: Int, targetMax: Int): Int {
-        if (streamType == AudioManager.STREAM_MUSIC) return musicUnits
-        val musicMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-        return (musicUnits.toFloat() / musicMax * targetMax).roundToInt()
     }
 
     private fun buildTimerNotification(remainingMinutes: Int): Notification {
@@ -228,6 +226,10 @@ class MuteTimerService : Service() {
     }
 
     override fun onDestroy() {
+        // Deliberately does NOT cancel the backup alarm or clear the persisted record here: if
+        // onDestroy runs because the countdown finished normally, restoreVolume() already cleared
+        // both above. If onDestroy runs because the system is killing this service outright, the
+        // backup alarm and DataStore record are exactly what needs to survive that.
         countdownJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
@@ -236,7 +238,7 @@ class MuteTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
-        private const val TAG = "MuteTimerService"
         const val NOTIF_ID = 1002
+        private const val TAG = "MuteTimerService"
     }
 }

@@ -276,11 +276,13 @@ Muting again will trigger the popup a second time (if the overlay is enabled). T
 
 Tapping **Skip** on the second popup leaves the original timer running undisturbed.
 
-#### What if the app is force-stopped or the device restarts mid-timer?
+#### What if the app's process is killed, or the device restarts mid-timer?
 
-If the app is force-stopped, the timer service is killed and volume will not be automatically restored. You will need to raise your volume manually.
+The countdown itself runs inside a background service, but a backup safety net covers most of the ways that service can be cut short:
 
-If the device restarts, the manual mute timer does not survive — the `BootReceiver` only re-arms **scheduled** mutes, not one-off manual timers. Again, you would need to raise volume manually after a reboot.
+- **The OS kills the app's process** (an aggressive OEM battery manager, low memory, Doze) — a backup alarm fires shortly after the timer was due to end and restores your volume anyway, even though the countdown itself stopped running.
+- **The device restarts mid-timer** — the app remembers what to restore (which stream and to what level) in on-device storage that survives a reboot. If the timer's end time had already passed by the time you turn the phone back on, volume is restored immediately; if there's still time left, the backup alarm is simply re-armed for what remains. This applies to both manual mutes and scheduled ones.
+- **You force-stop the app** — this is the one case that isn't covered. Android cancels an app's scheduled alarms as part of force-stopping it, which takes the backup alarm down with it. If you force-stop the app while a mute timer is running, you'll need to raise your volume manually.
 
 #### What if the device has a very low maximum volume?
 
@@ -511,6 +513,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 ### Reliability & Background Operation
 - Always-on volume monitor foreground service (silent, persistent notification)
 - Mute timer foreground service prevents Android from killing the countdown
+- Backup restore alarm and reboot-safe persisted restore state mean volume still comes back even if the app's process is killed or the device restarts mid-timer (does not cover force-stopping the app — see [Section 3.5](#35-edge-cases--behavior-notes))
 - Self-expiring suppression window prevents the mute popup from re-triggering when the app itself changes volume
 - Schedules re-arm themselves the instant they fire, and again after reboot, update, clock change, or permission grant
 - Exact-alarm scheduling ensures scheduled mutes fire within seconds of the configured time

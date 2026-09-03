@@ -38,29 +38,30 @@ The app has two main user flows:
 - **VolumeReceiver must be registered dynamically** inside `OverlayService` — the audio broadcasts cannot be received by statically declared receivers on API 26+
 - **System overlay uses `ComposeView` added to `WindowManager`** — requires `ServiceLifecycleOwner` (custom class implementing `LifecycleOwner`, `ViewModelStoreOwner`, `SavedStateRegistryOwner`) set on the view before `setContent()`. `OverlayViewController.show()` flips its showing flag synchronously before suspending, to prevent a double-window race.
 - **`OverlayServiceBridge`** (`service/OverlayServiceBridge.kt`) is a self-expiring 1.5 s time window, not a counter. `MuteTimerService` calls `markProgrammaticChange()` before every `setStreamVolume`/`adjustStreamVolume`; `OverlayService` ignores mute events inside the window. A counter was previously used and got stuck after restores, swallowing every other real mute.
-- **`defaultVolume` preference is in STREAM_MUSIC index units**; scale it when restoring STREAM_RING (see `MuteTimerService.scaleFromMusicUnits`)
+- **`defaultVolume` preference is in STREAM_MUSIC index units**; scale it when restoring STREAM_RING via the pure `scaleVolumeUnits()` top-level function in `service/VolumeRestorer.kt` (unit-tested in `VolumeRestorerTest`)
 - **Exact alarms use `SCHEDULE_EXACT_ALARM` only** (user-granted). `USE_EXACT_ALARM` is Play-restricted to alarm/calendar apps. `BootReceiver` also re-arms on `TIMEZONE_CHANGED`, `TIME_SET` and `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`.
 - **`ScheduleRepository.save()`/`setEnabled()` return whether alarms actually got armed** (`ScheduleSaveResult` / `Boolean`), not just the saved entity. `ScheduleEditScreen` → `AppNavigation` passes a "saved without alarms" flag back to `ScheduleListScreen` via the previous back stack entry's `SavedStateHandle` (separate ViewModels, so a SharedFlow can't cross screens directly); the list screen shows a Snackbar with a Grant action either way — from that nav result or from `ScheduleListViewModel.alarmsNotArmed` when toggling a schedule on in place.
 - **Schedule days stored as bitmask** in Room — `bit0=Monday` through `bit6=Sunday`, converted to/from `Set<DayOfWeek>` via extension functions in `ScheduleEntity.kt`
 - **AlarmManager requestCode**: `(scheduleId * 7 + dayOfWeek.value).toInt()` — one `PendingIntent` per (schedule × day) combination
+- **Mute-timer reliability (issue #8)**: `MuteTimerService` persists `{endEpochMillis, streamType, manualRestoreVolume}` to `PreferencesRepository.pendingRestore` (survives process death and reboot — DataStore, not memory) and arms a `BackupRestoreScheduler` exact alarm ~30s past the expected end. Under normal operation the service's own `restoreVolume()` finishes first and cancels both. If the process is killed first, `BackupRestoreReceiver` performs the restore instead. If the *device* reboots mid-timer (which also clears the AlarmManager alarm), `BootReceiver` reads the persisted record on `ACTION_BOOT_COMPLETED` and either restores immediately (end time already passed) or re-arms the backup alarm for what's left. The actual volume-setting logic is shared via `VolumeRestorer`, used by both the primary path (with Toast + chime layered on top) and the two fallback paths (deliberately without — `MediaPlayer` prepare/threading is machinery this safety net shouldn't depend on). Force-stopping the app is **not** covered — Android cancels an app's own `AlarmManager` alarms as part of force-stop.
 
 ### Layer Organization
 - `domain/model/` — `Schedule` data class (pure Kotlin, no Android deps)
 - `data/db/` — Room database, DAO, entity with domain mapping extensions
-- `data/datastore/` — `PreferencesRepository` wrapping DataStore (default volume, overlay enabled)
+- `data/datastore/` — `PreferencesRepository` wrapping DataStore (default volume, overlay enabled, pending mute-restore state)
 - `data/repository/` — `ScheduleRepository` facade over DAO + `AlarmScheduler`
-- `scheduler/` — `AlarmScheduler` manages `AlarmManager` with exact alarms
+- `scheduler/` — `AlarmScheduler` manages scheduled-mute `AlarmManager` alarms; `BackupRestoreScheduler` manages the one-off backup restore alarm
 - `audio/` — `ChimePlayer` singleton wrapping `MediaPlayer` for mute/restore chimes
-- `service/` — Two foreground services: `OverlayService` (always-on monitor) and `MuteTimerService` (on-demand countdown)
+- `service/` — Two foreground services: `OverlayService` (always-on monitor) and `MuteTimerService` (on-demand countdown); `VolumeRestorer` holds the shared restore logic they and the receivers below all use
 - `overlay/` — `OverlayViewController` + `ServiceLifecycleOwner` for WindowManager overlay
-- `receiver/` — `VolumeReceiver`, `AlarmReceiver`, `BootReceiver`
-- `ui/` — Jetpack Compose screens with `@HiltViewModel` ViewModels
+- `receiver/` — `VolumeReceiver`, `AlarmReceiver`, `BootReceiver`, `BackupRestoreReceiver`
+- `ui/` — Jetpack Compose screens with `@HiltViewModel` ViewModels, plus shared `ui/components/` (e.g. `DurationPicker`)
 
 ### DI (Hilt)
 - `@HiltAndroidApp`: `QuietApplication`
-- `@AndroidEntryPoint`: `MainActivity`, `OverlayService`, `MuteTimerService`, `BootReceiver`
+- `@AndroidEntryPoint`: `MainActivity`, `OverlayService`, `MuteTimerService`, `BootReceiver`, `BackupRestoreReceiver`
 - Modules: `DatabaseModule` (Room DB + DAO), `AppModule` (ChimePlayer)
-- `PreferencesRepository`, `ScheduleRepository`, `AlarmScheduler` are `@Singleton` with `@Inject constructor`
+- `PreferencesRepository`, `ScheduleRepository`, `AlarmScheduler`, `BackupRestoreScheduler`, `VolumeRestorer` are `@Singleton` with `@Inject constructor`
 
 ### Navigation
 Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}` (pushed modal, `id=-1` for new).
