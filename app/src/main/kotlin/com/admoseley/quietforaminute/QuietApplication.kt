@@ -19,10 +19,10 @@ class QuietApplication : Application() {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_MONITOR,
-                "Volume Monitor",
+                getString(R.string.notif_channel_monitor_name),
                 NotificationManager.IMPORTANCE_MIN
             ).apply {
-                description = "Persistent notification while volume monitoring is active"
+                description = getString(R.string.notif_channel_monitor_desc)
                 setShowBadge(false)
             }
         )
@@ -30,10 +30,10 @@ class QuietApplication : Application() {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_TIMER,
-                "Mute Timer",
+                getString(R.string.notif_channel_timer_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows remaining time while your phone is muted"
+                description = getString(R.string.notif_channel_timer_desc)
                 setShowBadge(true)
             }
         )
@@ -41,10 +41,10 @@ class QuietApplication : Application() {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_PERMISSION,
-                "Permission Requests",
+                getString(R.string.notif_channel_permission_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alerts when a required permission is missing"
+                description = getString(R.string.notif_channel_permission_desc)
             }
         )
     }

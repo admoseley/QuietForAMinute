@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.admoseley.quietforaminute.R
 import kotlin.math.roundToInt
 
 /**
@@ -63,7 +65,7 @@ fun MuteDurationDialog(
             )
 
             Text(
-                text = "Mute for how long?",
+                text = stringResource(R.string.mute_dialog_title),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
@@ -93,7 +95,7 @@ fun MuteDurationDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        "Restore Volume",
+                        stringResource(R.string.mute_dialog_restore_volume_label),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.weight(1f)
                     )
@@ -119,14 +121,14 @@ fun MuteDurationDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Skip")
+                    Text(stringResource(R.string.action_skip))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { onConfirm(timePickerState.hour, timePickerState.minute, restoreVolume) },
                     enabled = timePickerState.hour > 0 || timePickerState.minute > 0
                 ) {
-                    Text("Start")
+                    Text(stringResource(R.string.action_start))
                 }
             }
         }

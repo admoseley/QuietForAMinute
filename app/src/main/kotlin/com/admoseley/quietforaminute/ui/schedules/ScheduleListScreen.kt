@@ -19,12 +19,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.admoseley.quietforaminute.R
 import com.admoseley.quietforaminute.ui.schedules.components.ScheduleCard
 import kotlinx.coroutines.launch
 
@@ -41,12 +43,16 @@ fun ScheduleListScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    // stringResource() is @Composable-only, so these are captured here rather than inside the
+    // plain showAlarmsNotArmedSnackbar() function below.
+    val alarmsNotArmedMessage = stringResource(R.string.schedule_alarms_not_armed_snackbar)
+    val grantActionLabel = stringResource(R.string.action_grant)
 
     fun showAlarmsNotArmedSnackbar() {
         coroutineScope.launch {
             val result = snackbarHostState.showSnackbar(
-                message = "Saved, but exact alarms aren't permitted — this schedule won't fire",
-                actionLabel = "Grant",
+                message = alarmsNotArmedMessage,
+                actionLabel = grantActionLabel,
                 duration = SnackbarDuration.Long
             )
             if (result == SnackbarResult.ActionPerformed) {
@@ -78,7 +84,7 @@ fun ScheduleListScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Schedules",
+                        stringResource(R.string.schedules_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -90,8 +96,8 @@ fun ScheduleListScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddSchedule,
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add schedule") },
-                text = { Text("New Schedule") }
+                icon = { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.schedule_add_cd)) },
+                text = { Text(stringResource(R.string.schedule_add_fab)) }
             )
         }
     ) { padding ->
@@ -148,7 +154,7 @@ fun ScheduleListScreen(
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
                                     Text(
-                                        "Delete",
+                                        stringResource(R.string.schedule_swipe_delete_label),
                                         color = MaterialTheme.colorScheme.error,
                                         style = MaterialTheme.typography.labelLarge
                                     )
@@ -182,12 +188,12 @@ private fun EmptyState(onAddSchedule: () -> Unit) {
             modifier = Modifier.size(72.dp)
         )
         Text(
-            text = "No schedules yet",
+            text = stringResource(R.string.schedule_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Create a schedule to automatically mute your phone at specific times — like every weekday morning or on Friday afternoons.",
+            text = stringResource(R.string.schedule_empty_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -195,7 +201,7 @@ private fun EmptyState(onAddSchedule: () -> Unit) {
         FilledTonalButton(onClick = onAddSchedule) {
             Icon(Icons.Default.Add, null)
             Spacer(Modifier.width(8.dp))
-            Text("Create First Schedule")
+            Text(stringResource(R.string.schedule_create_first_button))
         }
     }
 }
