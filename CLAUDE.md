@@ -13,7 +13,14 @@ This is a single-module Android project using Gradle Kotlin DSL. Requires JDK 21
 ./gradlew dependencies           # Show dependency tree
 ```
 
-No tests exist yet. When added, use `./gradlew test` (unit) and `./gradlew connectedAndroidTest` (instrumented).
+Unit tests: `./gradlew test` (pure-logic tests under `app/src/test/`, no device needed). No
+instrumented tests yet; when added, use `./gradlew connectedAndroidTest`.
+
+Where a class needed a device dependency (`Context`, `android.content.Intent`) just to test pure
+logic, that logic was pulled into a plain Kotlin object/function instead: `AlarmScheduler`'s date
+math lives in `scheduler/AlarmTiming.kt`, and `VolumeReceiver`'s edge-detection decision is
+`VolumeReceiver.Companion.shouldTrigger()`, both exercised directly with primitive values rather
+than a mocked `Intent`/`Context`.
 
 ## Architecture
 

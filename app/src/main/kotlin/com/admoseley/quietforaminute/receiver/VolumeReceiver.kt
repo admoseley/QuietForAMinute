@@ -35,28 +35,41 @@ class VolumeReceiver(
 
     override fun onReceive(context: Context, intent: Intent) {
         val streamType = intent.getIntExtra(EXTRA_STREAM_TYPE, -1)
-        if (streamType !in WATCHED_STREAMS) return
+        val newVolume = intent.getIntExtra(EXTRA_VOLUME_VALUE, -1)
+        val prevVolume = intent.getIntExtra(EXTRA_PREV_VOLUME_VALUE, -1)
+        val muted = intent.getBooleanExtra(EXTRA_STREAM_MUTED, false)
+        Log.d(TAG, "action=${intent.action} stream=$streamType vol=$prevVolume->$newVolume muted=$muted")
 
-        when (intent.action) {
-            ACTION_VOLUME_CHANGED -> {
-                val newVolume = intent.getIntExtra(EXTRA_VOLUME_VALUE, -1)
-                val prevVolume = intent.getIntExtra(EXTRA_PREV_VOLUME_VALUE, -1)
-                Log.d(TAG, "VOLUME_CHANGED stream=$streamType $prevVolume -> $newVolume")
-                // Fire only on the edge (non-zero -> zero). prev == -1 means the extra was
-                // absent; treat that as a transition so a real mute is never missed.
-                if (newVolume == 0 && prevVolume != 0) onStreamMuted(streamType)
-            }
-
-            ACTION_STREAM_MUTE_CHANGED -> {
-                val muted = intent.getBooleanExtra(EXTRA_STREAM_MUTED, false)
-                Log.d(TAG, "STREAM_MUTE_CHANGED stream=$streamType muted=$muted")
-                if (muted) onStreamMuted(streamType)
-            }
+        if (shouldTrigger(intent.action, streamType, newVolume, prevVolume, muted)) {
+            onStreamMuted(streamType)
         }
     }
 
     companion object {
         private const val TAG = "VolumeReceiver"
+
+        /**
+         * Pure decision logic, pulled out of [onReceive] so it's testable without a real
+         * `android.content.Intent`. Reading extras for the "wrong" action (e.g. mute-flag extras
+         * on a VOLUME_CHANGED broadcast) is harmless — they're simply absent, giving the default
+         * -1 / false — so [onReceive] always extracts all four and lets this decide.
+         */
+        internal fun shouldTrigger(
+            action: String?,
+            streamType: Int,
+            newVolume: Int,
+            prevVolume: Int,
+            muted: Boolean
+        ): Boolean {
+            if (streamType !in WATCHED_STREAMS) return false
+            return when (action) {
+                // Fire only on the edge (non-zero -> zero). prev == -1 means the extra was
+                // absent; treat that as a transition so a real mute is never missed.
+                ACTION_VOLUME_CHANGED -> newVolume == 0 && prevVolume != 0
+                ACTION_STREAM_MUTE_CHANGED -> muted
+                else -> false
+            }
+        }
 
         // These action/extra strings are @hide in the SDK but have been stable since API 1
         // (VOLUME_CHANGED) and API 23 (STREAM_MUTE_CHANGED).
