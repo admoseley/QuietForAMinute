@@ -10,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.admoseley.quietforaminute.R
 import com.admoseley.quietforaminute.ui.schedules.components.DayChipSelector
 import java.time.DayOfWeek
 
@@ -52,13 +54,13 @@ fun ScheduleEditScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (isNew) "New Schedule" else "Edit Schedule",
+                        stringResource(if (isNew) R.string.schedule_new_title else R.string.schedule_edit_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
@@ -66,7 +68,7 @@ fun ScheduleEditScreen(
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = stringResource(R.string.schedule_delete_cd),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -83,7 +85,7 @@ fun ScheduleEditScreen(
                         .padding(16.dp),
                     enabled = !state.isLoading
                 ) {
-                    Text(if (isNew) "Create Schedule" else "Save Changes")
+                    Text(stringResource(if (isNew) R.string.schedule_create_button else R.string.schedule_save_button))
                 }
             }
         }
@@ -106,8 +108,8 @@ fun ScheduleEditScreen(
             OutlinedTextField(
                 value = state.label,
                 onValueChange = { viewModel.setLabel(it) },
-                label = { Text("Schedule name") },
-                placeholder = { Text("e.g. Morning class, Friday meetings") },
+                label = { Text(stringResource(R.string.schedule_name_label)) },
+                placeholder = { Text(stringResource(R.string.schedule_name_placeholder)) },
                 isError = state.labelError != null,
                 supportingText = state.labelError?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -115,7 +117,7 @@ fun ScheduleEditScreen(
             )
 
             // Day selector
-            SectionCard(title = "Repeat on", error = state.daysError) {
+            SectionCard(title = stringResource(R.string.schedule_repeat_on), error = state.daysError) {
                 DayChipSelector(
                     selectedDays = state.days,
                     onDayToggled = { viewModel.toggleDay(it) },
@@ -144,7 +146,7 @@ fun ScheduleEditScreen(
             }
 
             // Trigger time
-            SectionCard(title = "Start time") {
+            SectionCard(title = stringResource(R.string.schedule_start_time)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -162,13 +164,13 @@ fun ScheduleEditScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     OutlinedButton(onClick = { showStartTimePicker = true }) {
-                        Text("Change")
+                        Text(stringResource(R.string.action_change))
                     }
                 }
             }
 
             // Duration
-            SectionCard(title = "Mute duration", error = state.durationError) {
+            SectionCard(title = stringResource(R.string.schedule_mute_duration), error = state.durationError) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -188,7 +190,7 @@ fun ScheduleEditScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     OutlinedButton(onClick = { showDurationPicker = true }) {
-                        Text("Change")
+                        Text(stringResource(R.string.action_change))
                     }
                 }
             }
@@ -208,10 +210,10 @@ fun ScheduleEditScreen(
                 TextButton(onClick = {
                     viewModel.setTime(timePickerState.hour, timePickerState.minute)
                     showStartTimePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStartTimePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showStartTimePicker = false }) { Text(stringResource(R.string.action_cancel)) }
             },
             text = { TimePicker(state = timePickerState) }
         )
@@ -253,16 +255,16 @@ fun ScheduleEditScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete schedule?") },
-            text = { Text("\"${state.label}\" will be permanently deleted and all future alarms removed.") },
+            title = { Text(stringResource(R.string.schedule_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.schedule_delete_confirm_message, state.label)) },
             confirmButton = {
                 Button(
                     onClick = { viewModel.delete(); showDeleteConfirm = false },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -303,8 +305,8 @@ private fun QuickDayPresets(
 ) {
     Spacer(Modifier.height(8.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SuggestionChip(onClick = onWeekdays, label = { Text("Weekdays") })
-        SuggestionChip(onClick = onWeekends, label = { Text("Weekends") })
-        SuggestionChip(onClick = onEveryDay, label = { Text("Every day") })
+        SuggestionChip(onClick = onWeekdays, label = { Text(stringResource(R.string.schedule_weekdays)) })
+        SuggestionChip(onClick = onWeekends, label = { Text(stringResource(R.string.schedule_weekends)) })
+        SuggestionChip(onClick = onEveryDay, label = { Text(stringResource(R.string.schedule_every_day)) })
     }
 }

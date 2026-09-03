@@ -181,7 +181,7 @@ class MuteTimerService : Service() {
             Log.w(TAG, "Unable to restore stream $streamType", e)
         }
 
-        Toast.makeText(this, "System volume has been restored", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_volume_restored), Toast.LENGTH_SHORT).show()
 
         if (chimeEnabled) {
             val chimeUri = prefsRepository.restoreChimeUri.first()
@@ -203,7 +203,7 @@ class MuteTimerService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_volume_monitor)
-            .setContentTitle("Phone muted")
+            .setContentTitle(getString(R.string.notif_timer_title))
             .setContentText(formatRemaining(remainingMinutes))
             .setOngoing(true)
             .setOnlyAlertOnce(true) // refreshing the text every 10 s must not re-alert
@@ -221,9 +221,9 @@ class MuteTimerService : Service() {
         val h = minutes / 60
         val m = minutes % 60
         return when {
-            h > 0 && m > 0 -> "Restoring volume in ${h}h ${m}m"
-            h > 0 -> "Restoring volume in ${h}h"
-            else -> "Restoring volume in ${m}m"
+            h > 0 && m > 0 -> getString(R.string.notif_timer_text_hours_minutes, h, m)
+            h > 0 -> getString(R.string.notif_timer_text_hours, h)
+            else -> getString(R.string.notif_timer_text_minutes, m)
         }
     }
 

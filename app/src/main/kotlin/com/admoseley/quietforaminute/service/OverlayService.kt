@@ -137,8 +137,8 @@ class OverlayService : Service() {
     private fun buildMonitorNotification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_MONITOR)
             .setSmallIcon(R.drawable.ic_volume_monitor)
-            .setContentTitle("Volume monitoring active")
-            .setContentText("Listening for volume changes")
+            .setContentTitle(getString(R.string.notif_monitor_title))
+            .setContentText(getString(R.string.notif_monitor_text))
             .setOngoing(true)
             .setSilent(true)
             .setContentIntent(
@@ -157,8 +157,8 @@ class OverlayService : Service() {
         val pi = PendingIntent.getActivity(this, 99, intent, PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, CHANNEL_PERMISSION)
             .setSmallIcon(R.drawable.ic_volume_monitor)
-            .setContentTitle("Permission needed")
-            .setContentText("Tap to allow QuietForAMinute to show overlays")
+            .setContentTitle(getString(R.string.notif_permission_title))
+            .setContentText(getString(R.string.notif_permission_text, getString(R.string.app_name)))
             .setContentIntent(pi)
             .setAutoCancel(true)
             .build()

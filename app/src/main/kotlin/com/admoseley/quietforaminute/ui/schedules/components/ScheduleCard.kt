@@ -8,8 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.admoseley.quietforaminute.R
 import com.admoseley.quietforaminute.domain.model.Schedule
 
 @Composable
@@ -36,7 +38,7 @@ fun ScheduleCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = schedule.label.ifBlank { "Unnamed schedule" },
+                        text = schedule.label.ifBlank { stringResource(R.string.schedule_unnamed) },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = if (schedule.isEnabled) MaterialTheme.colorScheme.onSurface
@@ -65,7 +67,7 @@ fun ScheduleCard(
                 ) {
                     Icon(
                         Icons.Default.AccessTime,
-                        contentDescription = "Time",
+                        contentDescription = stringResource(R.string.schedule_time_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
@@ -81,7 +83,7 @@ fun ScheduleCard(
                 ) {
                     Icon(
                         Icons.Default.Timer,
-                        contentDescription = "Duration",
+                        contentDescription = stringResource(R.string.schedule_duration_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )

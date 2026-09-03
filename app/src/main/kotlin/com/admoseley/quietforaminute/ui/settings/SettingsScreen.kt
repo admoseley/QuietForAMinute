@@ -83,11 +83,17 @@ fun SettingsScreen(
         }
     }
 
+    val muteChimePickerTitle = stringResource(R.string.settings_mute_chime_picker_title)
+    val restoreChimePickerTitle = stringResource(R.string.settings_restore_chime_picker_title)
+
     fun pickRingtone(isMute: Boolean) {
         val currentUri = if (isMute) muteChimeUri else restoreChimeUri
         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, if (isMute) "Mute Chime" else "Restore Chime")
+            putExtra(
+                RingtoneManager.EXTRA_RINGTONE_TITLE,
+                if (isMute) muteChimePickerTitle else restoreChimePickerTitle
+            )
             putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri?.toUri())
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
@@ -152,7 +158,7 @@ fun SettingsScreen(
                 },
                 actions = {
                     IconButton(onClick = { activity?.moveTaskToBack(true) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.action_close))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -185,7 +191,7 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Mute when you need it.\nRestore when you forget.",
+                            stringResource(R.string.settings_hero_text),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 lineHeight = MaterialTheme.typography.titleLarge.lineHeight
@@ -203,7 +209,7 @@ fun SettingsScreen(
             }
 
             // Default volume
-            SectionLabel("Restore Volume")
+            SectionLabel(stringResource(R.string.settings_section_restore_volume))
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -218,7 +224,7 @@ fun SettingsScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "Default Volume",
+                            stringResource(R.string.settings_default_volume_label),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
@@ -238,7 +244,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        "Volume restored to this level when a mute timer expires",
+                        stringResource(R.string.settings_default_volume_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -246,19 +252,19 @@ fun SettingsScreen(
             }
 
             // Behavior settings
-            SectionLabel("App Settings")
+            SectionLabel(stringResource(R.string.settings_section_app_settings))
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     ListItem(
-                        headlineContent = { Text("App Theme") },
+                        headlineContent = { Text(stringResource(R.string.settings_app_theme)) },
                         supportingContent = {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceAround
                             ) {
-                                ThemeOption("Light", "LIGHT", themeMode) { viewModel.setThemeMode(it) }
-                                ThemeOption("Dark", "DARK", themeMode) { viewModel.setThemeMode(it) }
-                                ThemeOption("System", "SYSTEM", themeMode) { viewModel.setThemeMode(it) }
+                                ThemeOption(stringResource(R.string.settings_theme_light), "LIGHT", themeMode) { viewModel.setThemeMode(it) }
+                                ThemeOption(stringResource(R.string.settings_theme_dark), "DARK", themeMode) { viewModel.setThemeMode(it) }
+                                ThemeOption(stringResource(R.string.settings_theme_system), "SYSTEM", themeMode) { viewModel.setThemeMode(it) }
                             }
                         },
                         leadingContent = {
@@ -267,8 +273,8 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ListItem(
-                        headlineContent = { Text("Show timer popup on mute") },
-                        supportingContent = { Text("Opens a dialog when volume is set to 0") },
+                        headlineContent = { Text(stringResource(R.string.settings_show_popup_title)) },
+                        supportingContent = { Text(stringResource(R.string.settings_show_popup_description)) },
                         leadingContent = {
                             Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.primary)
                         },
@@ -281,15 +287,16 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ListItem(
-                        headlineContent = { Text("Chime on mute") },
+                        headlineContent = { Text(stringResource(R.string.settings_chime_on_mute_title)) },
                         supportingContent = {
                             // Note: getRingtone()/getTitle() query a content provider on the main
                             // thread. It is a one-off per URI change so the jank is negligible,
                             // but it would belong in the ViewModel if this list grows.
+                            val defaultChimeName = stringResource(R.string.settings_default_chime_name)
                             val name = remember(muteChimeUri) {
-                                muteChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: "Default chime"
+                                muteChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: defaultChimeName
                             }
-                            Text("Sound: $name")
+                            Text(stringResource(R.string.settings_chime_sound_format, name))
                         },
                         leadingContent = {
                             Icon(Icons.AutoMirrored.Filled.VolumeUp, null, tint = MaterialTheme.colorScheme.primary)
@@ -304,12 +311,13 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ListItem(
-                        headlineContent = { Text("Chime on restore") },
+                        headlineContent = { Text(stringResource(R.string.settings_chime_on_restore_title)) },
                         supportingContent = {
+                            val defaultChimeName = stringResource(R.string.settings_default_chime_name)
                             val name = remember(restoreChimeUri) {
-                                restoreChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: "Default chime"
+                                restoreChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: defaultChimeName
                             }
-                            Text("Sound: $name")
+                            Text(stringResource(R.string.settings_chime_sound_format, name))
                         },
                         leadingContent = {
                             Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary)
@@ -326,12 +334,12 @@ fun SettingsScreen(
             }
 
             // Permissions status
-            SectionLabel("Permissions")
+            SectionLabel(stringResource(R.string.settings_section_permissions))
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     PermissionRow(
-                        title = "Display over other apps",
-                        subtitle = "Required to show the mute timer popup",
+                        title = stringResource(R.string.permission_overlay_title),
+                        subtitle = stringResource(R.string.permission_overlay_subtitle),
                         granted = hasOverlayPermission.value,
                         onGrant = {
                             context.startActivity(
@@ -347,8 +355,8 @@ fun SettingsScreen(
                     // every enabled schedule as soon as the grant lands.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         PermissionRow(
-                            title = "Exact alarms",
-                            subtitle = "Required for scheduled mutes at precise times",
+                            title = stringResource(R.string.permission_exact_alarm_title),
+                            subtitle = stringResource(R.string.permission_exact_alarm_subtitle),
                             granted = canScheduleExactAlarms.value,
                             onGrant = {
                                 context.startActivity(
@@ -360,8 +368,8 @@ fun SettingsScreen(
                         )
                     }
                     PermissionRow(
-                        title = "Ignore battery optimization",
-                        subtitle = "Prevents the volume monitor from being killed in the background",
+                        title = stringResource(R.string.permission_battery_title),
+                        subtitle = stringResource(R.string.permission_battery_subtitle),
                         granted = ignoringBatteryOptimizations.value,
                         onGrant = {
                             context.startActivity(
@@ -390,7 +398,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Privacy Policy",
+                        text = stringResource(R.string.privacy_policy_link),
                         style = MaterialTheme.typography.labelLarge.copy(
                             textDecoration = TextDecoration.Underline,
                             color = MaterialTheme.colorScheme.primary
@@ -398,7 +406,7 @@ fun SettingsScreen(
                         modifier = Modifier.clickable { showPrivacyPolicy = true }
                     )
                     Text(
-                        text = "Terms of Use",
+                        text = stringResource(R.string.terms_of_use_link),
                         style = MaterialTheme.typography.labelLarge.copy(
                             textDecoration = TextDecoration.Underline,
                             color = MaterialTheme.colorScheme.primary
@@ -412,50 +420,48 @@ fun SettingsScreen(
                         onDismissRequest = { showPrivacyPolicy = false },
                         confirmButton = {
                             TextButton(onClick = { showPrivacyPolicy = false }) {
-                                Text("Close")
+                                Text(stringResource(R.string.action_close))
                             }
                         },
-                        title = { Text("Privacy Policy") },
+                        title = { Text(stringResource(R.string.privacy_policy_link)) },
                         text = {
                             Column(
                                 modifier = Modifier.verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    "Quiet For A Minute is committed to protecting your privacy. This application is designed to function entirely offline and does not collect, store, or transmit any personal data.",
+                                    stringResource(R.string.privacy_policy_intro),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Data Collection:",
+                                    stringResource(R.string.privacy_policy_data_collection_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "• No personal information (names, emails, addresses, etc.) is collected.\n" +
-                                    "• No usage data or analytics are tracked.\n" +
-                                    "• No device-specific identifiers are harvested.",
+                                    stringResource(R.string.privacy_policy_data_collection_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Permissions:",
+                                    stringResource(R.string.privacy_policy_permissions_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "The app requests only the permissions necessary for its core functionality (volume control, scheduling, and overlay display). These permissions are used strictly to provide the app's features on your device and never to access your private data.",
+                                    stringResource(R.string.privacy_policy_permissions_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Third-Party Services:",
+                                    stringResource(R.string.privacy_policy_third_party_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "The app does not integrate with any third-party services, advertisers, or analytics providers.",
+                                    stringResource(R.string.privacy_policy_third_party_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "By using Quiet For A Minute, you agree to this simple and transparent privacy approach: your data remains your own, and stays on your device.",
+                                    stringResource(R.string.privacy_policy_closing),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -468,67 +474,67 @@ fun SettingsScreen(
                         onDismissRequest = { showTermsOfUse = false },
                         confirmButton = {
                             TextButton(onClick = { showTermsOfUse = false }) {
-                                Text("Close")
+                                Text(stringResource(R.string.action_close))
                             }
                         },
-                        title = { Text("Terms of Use") },
+                        title = { Text(stringResource(R.string.terms_of_use_link)) },
                         text = {
                             Column(
                                 modifier = Modifier.verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    "Acceptance of Terms",
+                                    stringResource(R.string.terms_acceptance_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "By downloading or using Quiet For A Minute, you agree to these terms. If you do not agree, please do not use the application.",
+                                    stringResource(R.string.terms_acceptance_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Free Public Tool",
+                                    stringResource(R.string.terms_free_tool_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "Quiet For A Minute is provided as a free tool for public use. It is intended for personal, non-commercial use only. The application is not used for profit in any way.",
+                                    stringResource(R.string.terms_free_tool_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "No Warranties",
+                                    stringResource(R.string.terms_no_warranties_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "This application is provided \"as is\" without any warranties of any kind, express or implied. While we strive for reliability, we do not guarantee that the app will be error-free or that its functions (such as volume restoration) will work perfectly on all devices or in all scenarios.",
+                                    stringResource(R.string.terms_no_warranties_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Limitation of Liability",
+                                    stringResource(R.string.terms_liability_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "In no event shall the developer be liable for any damages (including, without limitation, missed notifications, alarms, or calls) arising out of the use or inability to use this application.",
+                                    stringResource(R.string.terms_liability_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "User Responsibility",
+                                    stringResource(R.string.terms_user_responsibility_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "It is your responsibility to ensure that your device's settings (such as battery optimization or notification permissions) allow the app to function as intended.",
+                                    stringResource(R.string.terms_user_responsibility_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    "Changes to Terms",
+                                    stringResource(R.string.terms_changes_heading),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    "We may update these terms from time to time. Your continued use of the app following any changes indicates your acceptance of the new terms.",
+                                    stringResource(R.string.terms_changes_body),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -597,11 +603,11 @@ private fun PermissionRow(
         trailingContent = {
             if (!granted) {
                 FilledTonalButton(onClick = onGrant) {
-                    Text("Grant")
+                    Text(stringResource(R.string.action_grant))
                 }
             } else {
                 Text(
-                    "Granted",
+                    stringResource(R.string.permission_granted),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.tertiary
                 )
