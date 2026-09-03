@@ -1,0 +1,12 @@
+# gitleaks config — see .github/workflows/secret-scan.yml
+# Extends the default ruleset; add path/rule allowlists here only for confirmed false positives
+# (e.g. a test fixture that looks like a key but isn't one), never to silence a real finding.
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''\.gradle/''',
+  '''app/build/''',
+]

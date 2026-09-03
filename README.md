@@ -81,6 +81,25 @@ Requires **Android Studio** with JDK 21+ and Android SDK (min SDK 26, compile SD
 
 Versions live in `gradle/libs.versions.toml`.
 
+## Development Workflow
+
+Work happens on a branch per fix/feature/chore, tracked by a GitHub issue, merged via pull
+request — never committed directly to `master`. See `CLAUDE.md` for the full cycle.
+
+Every PR and push to `master` runs through GitHub Actions:
+
+- **CI** (`.github/workflows/ci.yml`) — lint, unit tests, and a debug build. Doesn't sign or
+  publish anything yet; that's blocked on the release signing config.
+- **Secret scan** (`.github/workflows/secret-scan.yml`) — the open-source `gitleaks` CLI checks
+  every diff for accidentally-committed keys, tokens, or credentials.
+- **Dependabot** (`.github/dependabot.yml`) — weekly PRs for outdated Gradle and Actions
+  dependencies; security alerts for known-vulnerable dependencies are enabled repo-wide.
+
+Branch protection on `master` and GitHub's native code/secret scanning both require GitHub
+Advanced Security, which isn't available on this private repo's current plan — the checks above
+are the free-tier equivalent. Upgrading (or making the repo public) would unlock enforcing these
+as required status checks instead of just running them.
+
 ## Known Limitations
 
 - The mute countdown lives in memory. If Android kills the timer service (aggressive OEM battery management, force-stop, reboot) the volume is not restored automatically.

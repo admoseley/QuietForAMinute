@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Gradle dependency versions (gradle/libs.versions.toml, build.gradle.kts).
+  # Dependabot security alerts for these are already enabled repo-wide (free on any plan);
+  # this section additionally opens routine version-bump PRs, not just vulnerability fixes.
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Keep the Actions in .github/workflows/ themselves patched.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
