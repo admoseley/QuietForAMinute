@@ -74,6 +74,15 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
 ## Build environment notes
 - No JDK on PATH; use Android Studio's bundled one: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`
 - Build artifacts (`.gradle/`, `app/build/`, `.idea/`, `local.properties`) are git-ignored.
+- `org.gradle.jvmargs`/`kotlin.daemon.jvmargs` in `gradle.properties` are 3072m/1024m metaspace —
+  release builds with R8 minification are memory-hungry; a long session running many builds can
+  still hit a Metaspace OOM eventually (`./gradlew --stop` clears the wedged daemon if so).
+- The `release` build type is minified/shrunk (R8 + resources) and signed only when
+  `keystore.properties` exists at the repo root (gitignored, not committed — see README's
+  "Release signing" section). `storePassword` and `keyPassword` in it must be identical: `keytool`
+  defaults to PKCS12, which requires them to match, and a mismatch fails `bundleRelease` with
+  "Given final block not properly padded" rather than a clear password error.
+- Nothing publishes anywhere yet — no CI job builds/uploads a release build.
 - compileSdk is 37 with `compileSdkMinor = 2` (the SDK only ships `platforms;android-37.2`, not a
   bare `android-37`) because the current Compose BOM's AAR metadata requires compiling against
   API 37+; targetSdk stays at 36, the current Play minimum. If Android Studio ever reports
