@@ -46,9 +46,6 @@ changed.
   bottom of the Settings screen (#49), read from `BuildConfig` so it cannot drift from the APK.
 
 ### Known Issues
-- **Do Not Disturb has not been verified on a physical device.** The logic and its recovery paths
-  are unit-tested and the build is clean, but the DND grant flow and the interruption filter itself
-  have only been reasoned about, not exercised on hardware.
 - **targetSdk stays at 36** (#14). Android 17 (API 37) hardens background audio in a way that makes
   the volume APIs fail silently for apps targeting 37 without a while-in-use foreground service
   type. Compiling against 37 is fine; targeting it is not, until that is resolved.
