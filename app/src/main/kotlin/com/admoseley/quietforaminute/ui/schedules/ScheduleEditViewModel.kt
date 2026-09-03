@@ -32,6 +32,8 @@ data class ScheduleEditState(
 /** One-shot navigation events — avoids the stale-boolean problem on config change. */
 sealed class ScheduleEditEvent {
     object Saved : ScheduleEditEvent()
+    /** Saved successfully, but exact alarms couldn't be armed (permission not granted). */
+    object SavedWithoutAlarms : ScheduleEditEvent()
     object Deleted : ScheduleEditEvent()
 }
 
@@ -112,7 +114,7 @@ class ScheduleEditViewModel @Inject constructor(
         if (hasError) return
 
         viewModelScope.launch {
-            repository.save(
+            val result = repository.save(
                 Schedule(
                     id = s.id,
                     label = s.label.trim(),
@@ -123,7 +125,7 @@ class ScheduleEditViewModel @Inject constructor(
                     isEnabled = s.isEnabled
                 )
             )
-            _events.emit(ScheduleEditEvent.Saved)
+            _events.emit(if (result.alarmsArmed) ScheduleEditEvent.Saved else ScheduleEditEvent.SavedWithoutAlarms)
         }
     }
 

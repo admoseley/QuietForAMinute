@@ -10,13 +10,16 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Result of a write that may or may not have actually armed alarms. */
+data class ScheduleSaveResult(val schedule: Schedule, val alarmsArmed: Boolean)
+
 /**
  * Single entry point for schedule persistence. Every write here also keeps AlarmManager in sync,
  * so callers never touch [AlarmScheduler] directly.
  *
- * Note: [AlarmScheduler.schedule] returns false when exact alarms are not permitted. That result
- * is currently swallowed, so a schedule can be saved as "enabled" with nothing armed. Surfacing it
- * to the edit screen (snackbar + link to the permission page) would be a worthwhile follow-up.
+ * [AlarmScheduler.schedule] returns false when exact alarms are not permitted — [save] and
+ * [setEnabled] propagate that instead of swallowing it, so the UI can tell the user their
+ * schedule was saved but nothing was actually armed.
  */
 @Singleton
 class ScheduleRepository @Inject constructor(
@@ -30,7 +33,7 @@ class ScheduleRepository @Inject constructor(
     suspend fun getById(id: Long): Schedule? = dao.getById(id)?.toDomain()
 
     /** Inserts or updates, then re-arms every weekday slot from scratch. */
-    suspend fun save(schedule: Schedule): Schedule {
+    suspend fun save(schedule: Schedule): ScheduleSaveResult {
         if (schedule.id != 0L) {
             // Cancel all seven slots, not just the currently selected days, so days removed in
             // this edit do not leave a stale alarm behind.
@@ -38,8 +41,8 @@ class ScheduleRepository @Inject constructor(
         }
         val id = dao.upsert(schedule.toEntity())
         val saved = schedule.copy(id = id)
-        if (saved.isEnabled) alarmScheduler.schedule(saved)
-        return saved
+        val armed = if (saved.isEnabled) alarmScheduler.schedule(saved) else true
+        return ScheduleSaveResult(saved, armed)
     }
 
     suspend fun delete(schedule: Schedule) {
@@ -47,15 +50,17 @@ class ScheduleRepository @Inject constructor(
         dao.delete(schedule.toEntity())
     }
 
-    suspend fun setEnabled(schedule: Schedule, enabled: Boolean) {
+    /** Returns false if [enabled] was true but exact alarms could not actually be armed. */
+    suspend fun setEnabled(schedule: Schedule, enabled: Boolean): Boolean {
         dao.setEnabled(schedule.id, enabled)
-        if (enabled) {
+        return if (enabled) {
             // The caller passes the schedule as it was *before* the toggle, i.e. isEnabled=false.
             // AlarmScheduler.schedule() early-returns for disabled schedules, so the old code
             // never armed anything when switching a schedule back on. Pass an updated copy.
             alarmScheduler.schedule(schedule.copy(isEnabled = true))
         } else {
             alarmScheduler.cancelAllDaysForSchedule(schedule.id)
+            true
         }
     }
 }
