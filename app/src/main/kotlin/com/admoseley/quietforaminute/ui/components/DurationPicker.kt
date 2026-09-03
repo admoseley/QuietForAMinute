@@ -1,25 +1,39 @@
 package com.admoseley.quietforaminute.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.admoseley.quietforaminute.R
 
+/** Largest minute value that can be entered. Steppers move in 5s; typing allows any of 0..59. */
+private const val MAX_MINUTES = 59
+
 /**
- * Duration input built from preset chips + a compact stepper, replacing a repurposed clock-face
- * TimePicker. A TimePicker reads as "what time is it", not "how long" — the clock metaphor was a
- * recurring point of confusion for a duration (see issue #13). Presets cover the common cases in
- * one tap; the stepper handles anything else without the ambiguity of dragging a clock hand.
+ * Duration input built from preset chips + editable hour/minute fields with steppers, replacing a
+ * repurposed clock-face TimePicker. A TimePicker reads as "what time is it", not "how long" — the
+ * clock metaphor was a recurring point of confusion for a duration (see issue #13).
  *
- * Minutes step by 5 — this app's own minimum mute duration is 5 minutes (see
- * ScheduleEditViewModel), and single-minute precision isn't meaningful for "how long to stay
- * muted". Hours step by 1, capped at [maxHours].
+ * Three ways in, deliberately: presets for the common cases in one tap, +/- for small nudges, and
+ * typing for an exact value the other two can't reach (issue #41 — the steppers move minutes in
+ * 5s, so 3 or 47 minutes was previously unreachable).
  */
 @Composable
 fun DurationPicker(
@@ -50,17 +64,19 @@ fun DurationPicker(
                 max = maxHours,
                 decreaseCd = stringResource(R.string.duration_picker_decrease_hours_cd),
                 increaseCd = stringResource(R.string.duration_picker_increase_hours_cd),
+                fieldCd = stringResource(R.string.duration_picker_hours_field_cd),
                 modifier = Modifier.weight(1f)
             )
             DurationStepper(
                 label = stringResource(R.string.duration_picker_minutes_label),
                 value = minutes,
-                onValueChange = { onMinutesChange(it.coerceIn(0, 55)) },
+                onValueChange = { onMinutesChange(it.coerceIn(0, MAX_MINUTES)) },
                 step = 5,
                 min = 0,
-                max = 55,
+                max = MAX_MINUTES,
                 decreaseCd = stringResource(R.string.duration_picker_decrease_minutes_cd),
                 increaseCd = stringResource(R.string.duration_picker_increase_minutes_cd),
+                fieldCd = stringResource(R.string.duration_picker_minutes_field_cd),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -102,8 +118,15 @@ private fun DurationStepper(
     max: Int,
     decreaseCd: String,
     increaseCd: String,
+    fieldCd: String,
     modifier: Modifier = Modifier
 ) {
+    // Local text state, re-seeded whenever [value] changes from outside (a preset, a +/- tap).
+    // Keeping the raw string separate from the parsed Int is what lets the field be momentarily
+    // empty while the user clears it to type a new number, instead of snapping back to "0"
+    // under the cursor.
+    var text by remember(value) { mutableStateOf(value.toString()) }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -122,16 +145,37 @@ private fun DurationStepper(
             ) {
                 Icon(painterResource(R.drawable.ic_remove), contentDescription = decreaseCd, modifier = Modifier.size(18.dp))
             }
-            Text(
-                text = value.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+
+            BasicTextField(
+                value = text,
+                onValueChange = { raw ->
+                    // Digits only, and never more than 2 — anything longer can't be a valid
+                    // hour or minute, and silently dropping the extra keeps the field from
+                    // growing wider than its slot.
+                    val digits = raw.filter { it.isDigit() }.take(2)
+                    text = digits
+                    // An empty field is a legal intermediate state while typing, so only push a
+                    // value up when there's actually a number to push.
+                    digits.toIntOrNull()?.let { onValueChange(it.coerceIn(min, max)) }
+                },
+                textStyle = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center
+                ),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                // BasicTextField has no contentDescription parameter, so label it via semantics.
                 modifier = Modifier
                     .width(48.dp)
-                    .padding(horizontal = 4.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    .padding(horizontal = 4.dp)
+                    .semantics { contentDescription = fieldCd }
             )
+
             FilledTonalIconButton(
                 onClick = { onValueChange(value + step) },
                 enabled = value < max,
