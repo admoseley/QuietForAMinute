@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.admoseley.quietforaminute.ui.settings.SettingsViewModel

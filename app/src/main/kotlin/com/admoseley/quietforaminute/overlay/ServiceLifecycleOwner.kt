@@ -22,6 +22,9 @@ class ServiceLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateReg
     private val controller = SavedStateRegistryController.create(this)
 
     init {
+        // performRestore(null) = "no saved state". The overlay is rebuilt from preferences every
+        // time it is shown, so there is nothing to restore; the call is still mandatory before
+        // the registry can be consumed by Compose.
         controller.performAttach()
         controller.performRestore(null)
     }

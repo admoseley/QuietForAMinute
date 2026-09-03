@@ -110,15 +110,18 @@ Manual mute is the core on-demand feature of Quiet For A Minute. It lets you sil
 
 #### What the App Listens For
 
-Quiet For A Minute runs a persistent background service called `OverlayService`. This service registers a listener for Android's internal volume-change broadcast and watches the **media stream** volume at all times. The moment that stream reaches **zero**, the service acts.
+Quiet For A Minute runs a persistent background service called `OverlayService`. This service registers a listener for two of Android's internal audio broadcasts and watches the **media stream** and the **ring stream** at all times. The moment either stream *transitions* to **zero** (or is flagged as muted), the service acts.
 
 This means the trigger fires regardless of how you muted:
 
-- Pressing the **physical volume-down button** on the side of the device repeatedly until the slider disappears or shows zero.
+- Pressing the **physical volume-down button** on the side of the device repeatedly until the slider shows zero.
 - Dragging the **on-screen volume slider** (the panel that appears when you press a volume key) all the way to the left.
-- Any third-party app or shortcut that sets media volume to zero programmatically.
+- Tapping the **mute / bell icon** in the volume panel, or switching the ringer to vibrate.
+- Any third-party app or shortcut that sets media or ring volume to zero programmatically.
 
-> **Important:** The app watches the **media volume stream** specifically — the same stream that controls music, videos, podcasts, and games. It does not trigger on ring volume, notification volume, or alarm volume changes. If you silence only your ringer (e.g., by flipping the physical mute switch on some devices), the popup will not appear.
+> **Important:** The app watches the **media stream** (music, videos, podcasts, games) and the **ring stream**. Whichever one you muted is the one the timer restores. It does not trigger on notification-only or alarm volume changes, and it does not trigger on Do Not Disturb by itself unless DND also mutes the ring stream on your device.
+
+> **Note:** Only the *transition* into zero counts. If your volume is already at zero and you press volume-down again, nothing happens — raise it and mute again to get the popup back.
 
 #### The Sequence of Events on Mute
 
@@ -137,7 +140,7 @@ There are a few situations where the popup intentionally does not appear even wh
 
 - **"Show timer popup on mute" is turned off** in Settings. This lets you keep scheduled mutes active while opting out of the manual popup entirely.
 - **The overlay permission is not granted.** A notification will appear in the shade instead, prompting you to grant it.
-- **The app itself is restoring your volume.** When a mute timer expires, the service raises the volume programmatically. This internal volume change is suppressed so it does not re-trigger the popup and cause an infinite loop.
+- **The app itself is changing your volume.** When a scheduled mute fires or a timer expires, the service changes the volume programmatically. It opens a short (1.5 second) window first, and any volume event inside that window is ignored so the app cannot trigger itself. The window expires on its own — it cannot get stuck and swallow your next real mute.
 
 ---
 
@@ -227,9 +230,9 @@ When the countdown finishes, the restore sequence runs in this exact order:
 
 #### Step 1 — Volume Is Raised
 
-The app reads the restore volume set in the mute dialog (or the global default if no override was entered) and sets your media stream to that level. The change is instantaneous.
+The app reads the restore volume set in the mute dialog (or the global default if no override was entered) and sets the stream you muted — media or ring — to that level. If you muted with the volume-panel icon, the mute flag is cleared first so sound actually comes back. The change is instantaneous.
 
-The app also suppresses its own volume-change listener for this one event so that raising the volume from zero does not re-trigger the mute popup.
+The app also opens its self-change window for this step so that the volume change does not re-trigger the mute popup.
 
 #### Step 2 — Toast Notification
 
@@ -329,7 +332,7 @@ The current duration is displayed in large text (e.g., **1h 30m**). Tap **Change
 - Example: to mute for 90 minutes, set 1 hour 30 minutes.
 - Example: to mute for 45 minutes, set 0 hours 45 minutes.
 
-A duration greater than zero is required — saving will show an error if both hours and minutes are zero.
+A duration of at least **5 minutes** is required — saving will show an error for anything shorter.
 
 3. Tap **Create Schedule** at the bottom of the screen. The schedule is saved and alarms are set immediately for all selected days.
 
@@ -371,12 +374,12 @@ Open a schedule by tapping it, then tap the trash icon in the top-right corner o
 When a scheduled mute fires:
 
 1. `AlarmManager` wakes the app at the precise scheduled time, even if your device was asleep.
-2. The app mutes your media volume to zero silently (no popup — scheduled mutes are automatic and don't interrupt you).
-3. A **foreground notification** appears: "Phone muted — Restoring volume in Xh Ym", counting down.
-4. At the end of the duration, volume is restored to your default restore volume and the restore chime plays (if enabled).
-5. The alarm is **automatically re-scheduled** for the next occurrence of that schedule. You never need to manually re-arm it.
+2. The alarm is **immediately re-armed** for the next occurrence of that schedule, before anything else happens, so nothing that goes wrong later can stop the schedule from repeating.
+3. The app mutes your media volume to zero silently (no popup — scheduled mutes are automatic and don't interrupt you).
+4. A **foreground notification** appears: "Phone muted — Restoring volume in Xh Ym", counting down.
+5. At the end of the duration, volume is restored to your default restore volume and the restore chime plays (if enabled).
 
-> **Note:** Scheduled mutes survive device reboots. A `BootReceiver` re-arms all enabled schedule alarms automatically when the device starts up.
+> **Note:** Scheduled mutes survive device reboots, app updates, and clock or time-zone changes. A `BootReceiver` re-arms all enabled schedule alarms automatically in each of those cases, and again the moment you grant the exact-alarm permission.
 
 ---
 
@@ -426,7 +429,7 @@ A toggle switch. When **on**, a sound plays the instant your device is muted (bo
 **To change the chime sound:**
 Tap anywhere on the "Chime on mute" row (not just the switch). The system ringtone picker opens, letting you choose from any notification sound on your device. The name of the currently selected sound is shown below the label.
 
-Tap **Silent** in the ringtone picker if you want no sound, or tap **Default** to use the system default notification tone.
+Tap **Silent** in the ringtone picker to turn this chime off (the switch flips off for you), or tap **Default** to use the system default notification tone.
 
 ---
 
@@ -457,8 +460,9 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 ## 6. Complete Feature List
 
 ### Manual Mute
-- Detects when media volume is set to zero via physical button or software slider
-- Displays a floating overlay popup over the lock screen and any app
+- Detects when media or ring volume transitions to zero via physical button, software slider, or the volume-panel mute icon
+- Restores the same stream that was muted
+- Displays a floating overlay popup over any app (not above the lock screen)
 - Material 3 time picker for selecting mute duration (hours + minutes)
 - Per-mute restore volume override via in-dialog slider
 - Optional mute chime — plays immediately when mute is detected
@@ -492,8 +496,8 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 ### Reliability & Background Operation
 - Always-on volume monitor foreground service (silent, persistent notification)
 - Mute timer foreground service prevents Android from killing the countdown
-- Smart suppression prevents the mute popup from re-triggering when the app itself restores volume
-- `BootReceiver` re-arms all active schedules on device restart
+- Self-expiring suppression window prevents the mute popup from re-triggering when the app itself changes volume
+- Schedules re-arm themselves the instant they fire, and again after reboot, update, clock change, or permission grant
 - Exact-alarm scheduling ensures scheduled mutes fire within seconds of the configured time
 
 ---
@@ -501,7 +505,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 ## 7. Frequently Asked Questions
 
 **The mute popup didn't appear when I pressed volume down.**
-Check that "Show timer popup on mute" is enabled in Settings, and that the "Display over other apps" permission is granted. If the permission was recently revoked, the app will post a notification prompting you to re-grant it.
+Check that "Show timer popup on mute" is enabled in Settings, and that the "Display over other apps" permission is granted. If the permission was recently revoked, the app will post a notification prompting you to re-grant it. Also check that the "Volume monitoring active" notification is present — if your phone's battery manager has killed the monitor service, open the app once to restart it, and consider exempting the app from battery optimisation in system settings.
 
 **My scheduled mute didn't fire.**
 Make sure the "Exact alarms" permission is granted (Settings → Permissions). Without it, Android may defer scheduled alarms significantly. Also confirm the schedule is enabled (the toggle on the card should be on).

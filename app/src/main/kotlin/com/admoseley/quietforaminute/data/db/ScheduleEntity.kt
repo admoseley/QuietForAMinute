@@ -17,10 +17,12 @@ data class ScheduleEntity(
     val isEnabled: Boolean = true
 )
 
+// DayOfWeek.value is 1 (Monday) .. 7 (Sunday), hence the `- 1` when mapping to bit positions.
+// These two functions are pure and are the first thing worth covering with a unit test.
 fun ScheduleEntity.toDomain(): Schedule = Schedule(
     id = id,
     label = label,
-    days = DayOfWeek.values().filter { day ->
+    days = DayOfWeek.entries.filter { day ->
         daysBitmask and (1 shl (day.value - 1)) != 0
     }.toSet(),
     triggerHour = triggerHour,

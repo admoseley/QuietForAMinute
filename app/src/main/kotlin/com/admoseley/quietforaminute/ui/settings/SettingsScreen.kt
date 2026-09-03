@@ -54,6 +54,9 @@ fun SettingsScreen(
     val restoreChimeUri by viewModel.restoreChimeUri.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
+    // The ringtone picker returns a null URI when the user picks "Silent". A null URI is also how
+    // we represent "use the bundled chime", so Silent used to be indistinguishable from Default.
+    // Map Silent to "chime off" instead, which is what the user meant.
     val muteChimeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -62,6 +65,7 @@ fun SettingsScreen(
                 IntentCompat.getParcelableExtra(intent, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
             }
             viewModel.setMuteChimeUri(uri?.toString())
+            if (uri == null) viewModel.setChimeOnMute(false)
         }
     }
 
@@ -73,6 +77,7 @@ fun SettingsScreen(
                 IntentCompat.getParcelableExtra(intent, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
             }
             viewModel.setRestoreChimeUri(uri?.toString())
+            if (uri == null) viewModel.setChimeOnRestore(false)
         }
     }
 
@@ -257,6 +262,9 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text("Chime on mute") },
                         supportingContent = {
+                            // Note: getRingtone()/getTitle() query a content provider on the main
+                            // thread. It is a one-off per URI change so the jank is negligible,
+                            // but it would belong in the ViewModel if this list grows.
                             val name = remember(muteChimeUri) {
                                 muteChimeUri?.let { RingtoneManager.getRingtone(context, it.toUri())?.getTitle(context) } ?: "Default chime"
                             }
@@ -313,6 +321,9 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    // SCHEDULE_EXACT_ALARM is denied by default on Android 14+, so most users will
+                    // see this row with a Grant button until they act on it. BootReceiver re-arms
+                    // every enabled schedule as soon as the grant lands.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         PermissionRow(
                             title = "Exact alarms",
