@@ -167,22 +167,21 @@ At the very top of the card is a muted-volume icon and the prompt: **"Mute for h
 
 #### Choosing a Duration
 
-The center of the card shows a **Material 3 time picker** — the same style used throughout Android for scheduling alarms and events.
+The center of the card shows a **duration picker**: four preset chips (**15m**, **30m**, **1h**, **2h**) above a pair of compact steppers for **hours** and **minutes**. An earlier version of this screen reused Android's clock-face time picker for this, which read as "what time is it" rather than "how long" — the preset-and-stepper layout replaced it for that reason.
 
-The picker has two fields: **hours** and **minutes**.
-
-- **Default value:** The picker opens at **0 hours, 30 minutes** every time. This is intentional — 30 minutes covers most short meetings or focused sessions without requiring any adjustment.
-- **Entering a value:** Tap the hours or minutes field to highlight it. You can then type a number directly using your keypad, or use the up/down spinner arrows.
-- **Valid range:** Hours can be 0–23. Minutes can be 0–59. Any combination is valid as long as the total duration is greater than zero (i.e., you cannot start a zero-length timer).
+- **Default value:** The picker opens at **0 hours, 30 minutes** every time (the same as tapping the **30m** preset). This covers most short meetings or focused sessions without requiring any adjustment.
+- **Using a preset:** Tap **15m**, **30m**, **1h**, or **2h** to set both fields at once. Whichever preset matches the current hours/minutes is highlighted.
+- **Using the steppers:** Tap **+** or **−** under **Hours** to adjust by 1, or under **Minutes** to adjust by 5. Minutes step by 5 rather than 1 — single-minute precision isn't meaningful for a mute timer, and 5-minute steps get you to any common duration in a few taps.
+- **Valid range:** Hours can be 0–23. Minutes can be 0–55, in steps of 5. Any combination is valid as long as the total duration is greater than zero (i.e., you cannot start a zero-length timer).
 - **Examples of common durations:**
-  - 30-minute meeting → 0h 30m
-  - 1-hour class → 1h 0m
-  - 90-minute film → 1h 30m
-  - Overnight silence → 8h 0m
+  - 30-minute meeting → tap the **30m** preset
+  - 1-hour class → tap the **1h** preset
+  - 90-minute film → tap **1h**, then **+** once under Minutes
+  - Overnight silence → **+** the Hours stepper to 8
 
 #### Adjusting the Restore Volume (Per-Mute Override)
 
-Below the time picker, separated by a divider line, is a **Restore Volume** row. This lets you fine-tune the volume level the app will restore to when *this specific* timer ends, without changing the global default saved in Settings.
+Below the duration picker, separated by a divider line, is a **Restore Volume** row. This lets you fine-tune the volume level the app will restore to when *this specific* timer ends, without changing the global default saved in Settings.
 
 - The slider starts at the value set in Settings (your configured default restore volume).
 - Drag the slider right to increase the restore level, or left to decrease it.
@@ -338,10 +337,10 @@ The current start time is displayed in large text (e.g., **9:00 AM**). Tap **Cha
 
 #### Mute Duration
 
-The current duration is displayed in large text (e.g., **1h 30m**). Tap **Change** to open a duration picker. This picker uses a 24-hour format where the "hour" and "minute" fields represent the length of the mute, not a time of day.
+The current duration is displayed in large text (e.g., **1h 30m**). Tap **Change** to open the same preset-chips-and-stepper duration picker used in the manual mute popup (see [Section 3.2](#32-using-the-mute-duration-popup)) — presets for 15m/30m/1h/2h, plus steppers for anything else (hours by 1, minutes by 5).
 
-- Example: to mute for 90 minutes, set 1 hour 30 minutes.
-- Example: to mute for 45 minutes, set 0 hours 45 minutes.
+- Example: to mute for 90 minutes, tap the **1h** preset, then **+** once under Minutes.
+- Example: to mute for 45 minutes, tap **+** nine times under Minutes from zero, or start from the **30m** preset and add 15 more.
 
 A duration of at least **5 minutes** is required — saving will show an error for anything shorter.
 
@@ -479,7 +478,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Detects when media or ring volume transitions to zero via physical button, software slider, or the volume-panel mute icon
 - Restores the same stream that was muted
 - Displays a floating overlay popup over any app (not above the lock screen)
-- Material 3 time picker for selecting mute duration (hours + minutes)
+- Preset-chips-and-stepper duration picker (15m/30m/1h/2h presets, plus hour/5-minute steppers)
 - Per-mute restore volume override via in-dialog slider
 - Optional mute chime — plays immediately when mute is detected
 - "Skip" option to dismiss the popup and keep the phone muted indefinitely
@@ -493,7 +492,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Select any combination of days of the week (Mon–Sun)
 - Quick-preset day selectors: Weekdays, Weekends, Every day
 - Precise start time picker in 12-hour format
-- Mute duration picker (hours and minutes, independent of start time)
+- Mute duration picker, independent of start time (same preset-chips-and-stepper picker as manual mute)
 - Per-schedule enable/disable toggle — suspend a schedule without deleting it
 - Swipe-to-delete on the schedule list
 - Delete from the schedule editor with a confirmation dialog
@@ -527,7 +526,7 @@ Check that "Show timer popup on mute" is enabled in Settings, and that the "Disp
 Make sure the "Exact alarms" permission is granted (Settings → Permissions). Without it, Android may defer scheduled alarms significantly. Also confirm the schedule is enabled (the toggle on the card should be on).
 
 **The popup appears but the Start button is disabled.**
-Both hours and minutes on the time picker are set to zero. Set at least one minute of duration before tapping Start.
+Both hours and minutes on the duration picker are set to zero. Tap a preset (15m/30m/1h/2h) or use the steppers to set at least one minute before tapping Start.
 
 **Will my schedules still fire after a reboot?**
 Yes. The app registers a `BootReceiver` that re-arms all enabled schedule alarms automatically when the device powers on.

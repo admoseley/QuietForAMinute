@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.admoseley.quietforaminute.R
+import com.admoseley.quietforaminute.ui.components.DurationPicker
 import kotlin.math.roundToInt
 
 /**
@@ -32,15 +33,8 @@ fun MuteDurationDialog(
     onConfirm: (hours: Int, minutes: Int, restoreVolume: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // A TimePicker is repurposed as an hours:minutes *duration* input (24h mode so the hour dial
-    // reads 0..23). It works, but the clock-face metaphor is a known point of confusion; a pair
-    // of number steppers or preset chips (15m / 30m / 1h / 2h) would be more direct.
-    val timePickerState = rememberTimePickerState(
-        initialHour = 0,
-        initialMinute = 30,
-        is24Hour = true // 24h mode is best for selecting a duration
-    )
-
+    var hours by remember { mutableIntStateOf(0) }
+    var minutes by remember { mutableIntStateOf(30) }
     var restoreVolume by remember { mutableIntStateOf(initialRestoreVolume) }
 
     Surface(
@@ -70,9 +64,11 @@ fun MuteDurationDialog(
                 textAlign = TextAlign.Center
             )
 
-            // Material 3 Time Picker component
-            TimePicker(
-                state = timePickerState,
+            DurationPicker(
+                hours = hours,
+                minutes = minutes,
+                onHoursChange = { hours = it },
+                onMinutesChange = { minutes = it },
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
@@ -125,8 +121,8 @@ fun MuteDurationDialog(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { onConfirm(timePickerState.hour, timePickerState.minute, restoreVolume) },
-                    enabled = timePickerState.hour > 0 || timePickerState.minute > 0
+                    onClick = { onConfirm(hours, minutes, restoreVolume) },
+                    enabled = hours > 0 || minutes > 0
                 ) {
                     Text(stringResource(R.string.action_start))
                 }
