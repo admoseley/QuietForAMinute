@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.admoseley.quietforaminute.ui.schedules.components.ScheduleCard
 
@@ -83,14 +83,18 @@ fun ScheduleListScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(schedules, key = { it.id }) { schedule ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { dismissValue ->
-                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.delete(schedule)
-                                    true
-                                } else false
+                        // confirmValueChange is deprecated (Compose foundation now recommends
+                        // driving the anchor set instead of vetoing changes via callback). The
+                        // veto here was never actually restricting direction — that's already
+                        // enableDismissFromStartToEnd = false below — it was only used to fire
+                        // the delete as a side effect, which a LaunchedEffect does just as well.
+                        val dismissState = rememberSwipeToDismissBoxState()
+
+                        LaunchedEffect(dismissState.currentValue) {
+                            if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.delete(schedule)
                             }
-                        )
+                        }
 
                         SwipeToDismissBox(
                             state = dismissState,
