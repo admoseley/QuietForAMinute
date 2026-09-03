@@ -336,6 +336,8 @@ A duration of at least **5 minutes** is required — saving will show an error f
 
 3. Tap **Create Schedule** at the bottom of the screen. The schedule is saved and alarms are set immediately for all selected days.
 
+> **Note:** If the "Exact alarms" permission isn't granted, the schedule still saves, but a message appears on the Schedules screen explaining that nothing was actually armed, with a button that opens the permission page directly.
+
 ---
 
 ### 4.3 Editing a Schedule
@@ -351,7 +353,7 @@ A duration of at least **5 minutes** is required — saving will show an error f
 Each schedule card has a toggle switch. Flipping it:
 
 - **Off** — cancels all pending alarms for that schedule. The schedule remains saved and can be re-enabled at any time.
-- **On** — immediately re-arms all pending alarms for the schedule based on its days, start time, and duration.
+- **On** — immediately re-arms all pending alarms for the schedule based on its days, start time, and duration. If the "Exact alarms" permission isn't granted, the toggle still switches on but a message appears explaining nothing was actually armed, with a button to grant the permission.
 
 This is useful for temporarily suspending a schedule (e.g., during a vacation) without losing its configuration.
 

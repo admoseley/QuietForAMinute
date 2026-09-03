@@ -21,7 +21,7 @@ import java.time.DayOfWeek
 @Composable
 fun ScheduleEditScreen(
     scheduleId: Long,
-    onSaved: () -> Unit,
+    onSaved: (alarmsArmed: Boolean) -> Unit,
     onDeleted: () -> Unit,
     onBack: () -> Unit,
     viewModel: ScheduleEditViewModel = hiltViewModel()
@@ -34,7 +34,8 @@ fun ScheduleEditScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                ScheduleEditEvent.Saved -> onSaved()
+                ScheduleEditEvent.Saved -> onSaved(true)
+                ScheduleEditEvent.SavedWithoutAlarms -> onSaved(false)
                 ScheduleEditEvent.Deleted -> onDeleted()
             }
         }

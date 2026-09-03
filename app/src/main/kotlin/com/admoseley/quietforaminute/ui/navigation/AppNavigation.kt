@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,6 +32,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 val bottomNavItems = listOf(Screen.Settings, Screen.Schedules)
 
+/** SavedStateHandle key used to pass the "saved without alarms armed" result back to the list. */
+private const val KEY_ALARMS_NOT_ARMED = "alarmsNotArmed"
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -46,8 +50,19 @@ fun AppNavigation() {
             composable(Screen.Settings.route) {
                 SettingsScreen()
             }
-            composable(Screen.Schedules.route) {
+            composable(Screen.Schedules.route) { backStackEntry ->
+                // Set by ScheduleEditScreen's onSaved below, via the *previous* back stack
+                // entry's savedStateHandle — the standard Navigation Compose way to pass a
+                // one-shot result back after a pop, since these two screens have separate
+                // ViewModels and can't share a SharedFlow directly.
+                val alarmsNotArmed by backStackEntry.savedStateHandle
+                    .getStateFlow(KEY_ALARMS_NOT_ARMED, false)
+                    .collectAsState()
                 ScheduleListScreen(
+                    justSavedWithoutAlarms = alarmsNotArmed,
+                    onJustSavedWithoutAlarmsConsumed = {
+                        backStackEntry.savedStateHandle[KEY_ALARMS_NOT_ARMED] = false
+                    },
                     onAddSchedule = { navController.navigate(Screen.ScheduleEdit.route()) },
                     onEditSchedule = { id -> navController.navigate(Screen.ScheduleEdit.route(id)) }
                 )
@@ -64,7 +79,14 @@ fun AppNavigation() {
                 val id = backStackEntry.arguments?.getLong("id") ?: -1L
                 ScheduleEditScreen(
                     scheduleId = id,
-                    onSaved = { navController.popBackStack() },
+                    onSaved = { alarmsArmed ->
+                        if (!alarmsArmed) {
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(KEY_ALARMS_NOT_ARMED, true)
+                        }
+                        navController.popBackStack()
+                    },
                     onDeleted = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )

@@ -1,5 +1,7 @@
 package com.admoseley.quietforaminute.ui.schedules
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,23 +18,62 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.admoseley.quietforaminute.ui.schedules.components.ScheduleCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleListScreen(
     onAddSchedule: () -> Unit,
     onEditSchedule: (Long) -> Unit,
+    justSavedWithoutAlarms: Boolean = false,
+    onJustSavedWithoutAlarmsConsumed: () -> Unit = {},
     viewModel: ScheduleListViewModel = hiltViewModel()
 ) {
     val schedules by viewModel.schedules.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun showAlarmsNotArmedSnackbar() {
+        coroutineScope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = "Saved, but exact alarms aren't permitted — this schedule won't fire",
+                actionLabel = "Grant",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                context.startActivity(
+                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = "package:${context.packageName}".toUri()
+                    }
+                )
+            }
+        }
+    }
+
+    // Fired when a save on the edit screen went through but nothing could actually be armed.
+    LaunchedEffect(justSavedWithoutAlarms) {
+        if (justSavedWithoutAlarms) {
+            showAlarmsNotArmedSnackbar()
+            onJustSavedWithoutAlarmsConsumed()
+        }
+    }
+
+    // Same warning, for toggling a schedule back on directly from this list.
+    LaunchedEffect(Unit) {
+        viewModel.alarmsNotArmed.collect { showAlarmsNotArmedSnackbar() }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
