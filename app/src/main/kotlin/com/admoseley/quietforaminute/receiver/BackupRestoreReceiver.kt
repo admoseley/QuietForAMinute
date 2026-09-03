@@ -6,6 +6,8 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
+import com.admoseley.quietforaminute.scheduler.EXTRA_BACKUP_CLEAR_DND
+import com.admoseley.quietforaminute.scheduler.EXTRA_BACKUP_RESTORE_MEDIA
 import com.admoseley.quietforaminute.scheduler.EXTRA_BACKUP_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_BACKUP_STREAM_TYPE
 import com.admoseley.quietforaminute.service.MuteTimerService
@@ -32,6 +34,8 @@ class BackupRestoreReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val streamType = intent.getIntExtra(EXTRA_BACKUP_STREAM_TYPE, -1)
         val manualRestoreVolume = intent.getIntExtra(EXTRA_BACKUP_RESTORE_VOLUME, -1)
+        val clearDnd = intent.getBooleanExtra(EXTRA_BACKUP_CLEAR_DND, false)
+        val restoreMedia = intent.getBooleanExtra(EXTRA_BACKUP_RESTORE_MEDIA, false)
         if (streamType == -1) return // FLAG_NO_CREATE races aside, extras should always be present.
 
         Log.w(TAG, "Backup restore firing for stream $streamType — MuteTimerService did not finish in time")
@@ -39,7 +43,9 @@ class BackupRestoreReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                volumeRestorer.restore(streamType, manualRestoreVolume)
+                // Clearing DND matters most on exactly this path: with the service's process gone
+                // there is nothing else left that would ever turn it back off.
+                volumeRestorer.restore(streamType, manualRestoreVolume, clearDnd, restoreMedia)
                 prefsRepository.clearPendingRestore()
                 // The service's own notification would otherwise be orphaned on the rare chance
                 // the process is still alive but just stuck (vs. actually killed).

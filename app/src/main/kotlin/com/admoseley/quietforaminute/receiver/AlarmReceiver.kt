@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.admoseley.quietforaminute.data.repository.ScheduleRepository
+import com.admoseley.quietforaminute.scheduler.EXTRA_DND_ENABLED
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
 import com.admoseley.quietforaminute.scheduler.EXTRA_SCHEDULE_ID
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
@@ -41,7 +42,8 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val scheduleId = intent.getLongExtra(EXTRA_SCHEDULE_ID, -1L)
         val durationMinutes = intent.getIntExtra(EXTRA_DURATION_MINUTES, 0)
-        Log.d(TAG, "Alarm fired: schedule=$scheduleId duration=$durationMinutes")
+        val dndEnabled = intent.getBooleanExtra(EXTRA_DND_ENABLED, false)
+        Log.d(TAG, "Alarm fired: schedule=$scheduleId duration=$durationMinutes dnd=$dndEnabled")
 
         if (scheduleId >= 0) {
             // goAsync() keeps the receiver (and process) alive until finish() is called, giving
@@ -68,6 +70,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_DURATION_MINUTES, durationMinutes)
             putExtra(EXTRA_SOURCE, SOURCE_ALARM)
             putExtra(EXTRA_STREAM_TYPE, AudioManager.STREAM_MUSIC)
+            putExtra(EXTRA_DND_ENABLED, dndEnabled)
         }
         try {
             ContextCompat.startForegroundService(context, serviceIntent)

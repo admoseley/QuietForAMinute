@@ -22,11 +22,23 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * A mute countdown's restore target, persisted to disk so it survives the process (and the
  * device) being killed. [manualRestoreVolume] mirrors [com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME]
  * — -1 means "use the default restore volume at restore time", not a literal index.
+ *
+ * [dndEnabled] records that *this app* switched Do Not Disturb on for this timer and therefore
+ * owes the user switching it back off. It is false when DND wasn't requested, when the permission
+ * was missing, and — importantly — when DND was already on before the timer started, since in that
+ * case it belongs to the user and must be left alone (see DndController.enable).
+ *
+ * [mediaMuted] records that we additionally silenced STREAM_MUSIC. That happens when DND is on but
+ * the timer was triggered by muting the *ring* stream: DND stops the phone interrupting and the
+ * ring mute stops it ringing, but a video would still be playing out loud. Like [dndEnabled] it is
+ * an "we changed this, so we owe undoing it" flag — media is only restored when we muted it.
  */
 data class PendingRestore(
     val endEpochMillis: Long,
     val streamType: Int,
-    val manualRestoreVolume: Int
+    val manualRestoreVolume: Int,
+    val dndEnabled: Boolean,
+    val mediaMuted: Boolean
 )
 
 @Singleton
@@ -42,9 +54,12 @@ class PreferencesRepository @Inject constructor(
         val KEY_MUTE_CHIME_URI = stringPreferencesKey("mute_chime_uri")
         val KEY_RESTORE_CHIME_URI = stringPreferencesKey("restore_chime_uri")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_DND_WITH_MUTE = booleanPreferencesKey("dnd_with_mute")
         val KEY_PENDING_RESTORE_END_EPOCH = longPreferencesKey("pending_restore_end_epoch")
         val KEY_PENDING_RESTORE_STREAM_TYPE = intPreferencesKey("pending_restore_stream_type")
         val KEY_PENDING_RESTORE_VOLUME = intPreferencesKey("pending_restore_volume")
+        val KEY_PENDING_RESTORE_DND = booleanPreferencesKey("pending_restore_dnd")
+        val KEY_PENDING_RESTORE_MEDIA_MUTED = booleanPreferencesKey("pending_restore_media_muted")
     }
 
     /**
@@ -74,6 +89,14 @@ class PreferencesRepository @Inject constructor(
         .map { prefs -> prefs[KEY_THEME_MODE] ?: "SYSTEM" }
 
     /**
+     * Last state of the popup's "Also turn on Do Not Disturb" toggle, so the choice is sticky
+     * across mutes. Defaults off — DND is extra behaviour on top of muting, and turning it on for
+     * someone who never asked would silence calls they were expecting.
+     */
+    val dndWithMute: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[KEY_DND_WITH_MUTE] ?: false }
+
+    /**
      * Non-null exactly while a mute countdown (manual or scheduled) is running — the safety net
      * that lets [com.admoseley.quietforaminute.receiver.BackupRestoreReceiver] and
      * [com.admoseley.quietforaminute.receiver.BootReceiver] restore volume even if
@@ -83,7 +106,11 @@ class PreferencesRepository @Inject constructor(
         val endEpoch = prefs[KEY_PENDING_RESTORE_END_EPOCH] ?: return@map null
         val streamType = prefs[KEY_PENDING_RESTORE_STREAM_TYPE] ?: return@map null
         val manualRestoreVolume = prefs[KEY_PENDING_RESTORE_VOLUME] ?: return@map null
-        PendingRestore(endEpoch, streamType, manualRestoreVolume)
+        // Defaulted rather than required: a record written by a pre-DND build has no such key, and
+        // "we didn't turn DND on" is the correct reading of its absence.
+        val dndEnabled = prefs[KEY_PENDING_RESTORE_DND] ?: false
+        val mediaMuted = prefs[KEY_PENDING_RESTORE_MEDIA_MUTED] ?: false
+        PendingRestore(endEpoch, streamType, manualRestoreVolume, dndEnabled, mediaMuted)
     }
 
     suspend fun setDefaultVolume(volume: Int) {
@@ -122,11 +149,23 @@ class PreferencesRepository @Inject constructor(
         context.dataStore.edit { it[KEY_THEME_MODE] = mode }
     }
 
-    suspend fun savePendingRestore(endEpochMillis: Long, streamType: Int, manualRestoreVolume: Int) {
+    suspend fun setDndWithMute(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_DND_WITH_MUTE] = enabled }
+    }
+
+    suspend fun savePendingRestore(
+        endEpochMillis: Long,
+        streamType: Int,
+        manualRestoreVolume: Int,
+        dndEnabled: Boolean,
+        mediaMuted: Boolean
+    ) {
         context.dataStore.edit {
             it[KEY_PENDING_RESTORE_END_EPOCH] = endEpochMillis
             it[KEY_PENDING_RESTORE_STREAM_TYPE] = streamType
             it[KEY_PENDING_RESTORE_VOLUME] = manualRestoreVolume
+            it[KEY_PENDING_RESTORE_DND] = dndEnabled
+            it[KEY_PENDING_RESTORE_MEDIA_MUTED] = mediaMuted
         }
     }
 
@@ -135,6 +174,8 @@ class PreferencesRepository @Inject constructor(
             it.remove(KEY_PENDING_RESTORE_END_EPOCH)
             it.remove(KEY_PENDING_RESTORE_STREAM_TYPE)
             it.remove(KEY_PENDING_RESTORE_VOLUME)
+            it.remove(KEY_PENDING_RESTORE_DND)
+            it.remove(KEY_PENDING_RESTORE_MEDIA_MUTED)
         }
     }
 }

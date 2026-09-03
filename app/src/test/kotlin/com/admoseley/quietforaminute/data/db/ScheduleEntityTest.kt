@@ -3,6 +3,8 @@ package com.admoseley.quietforaminute.data.db
 import com.admoseley.quietforaminute.domain.model.Schedule
 import java.time.DayOfWeek
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScheduleEntityTest {
@@ -56,5 +58,26 @@ class ScheduleEntityTest {
         // Common off-by-one: DayOfWeek.SUNDAY.value is 7, not 0.
         val entity = schedule(setOf(DayOfWeek.SUNDAY)).toEntity()
         assertEquals(1 shl 6, entity.daysBitmask)
+    }
+
+    @Test
+    fun `dnd flag round-trips in both directions`() {
+        // Both mappings are hand-written, so a field added to one and forgotten in the other
+        // would silently drop the user's choice on every load or save.
+        val on = schedule(setOf(DayOfWeek.MONDAY)).copy(dndEnabled = true)
+        assertTrue(on.toEntity().dndEnabled)
+        assertTrue(on.toEntity().toDomain().dndEnabled)
+
+        val off = schedule(setOf(DayOfWeek.MONDAY)).copy(dndEnabled = false)
+        assertFalse(off.toEntity().dndEnabled)
+        assertFalse(off.toEntity().toDomain().dndEnabled)
+    }
+
+    @Test
+    fun `dnd defaults to off for a schedule that never set it`() {
+        // Matches the MIGRATION_1_2 column default, so a schedule saved before the DND option
+        // existed keeps behaving exactly as it did.
+        assertFalse(schedule(setOf(DayOfWeek.MONDAY)).dndEnabled)
+        assertFalse(schedule(setOf(DayOfWeek.MONDAY)).toEntity().dndEnabled)
     }
 }

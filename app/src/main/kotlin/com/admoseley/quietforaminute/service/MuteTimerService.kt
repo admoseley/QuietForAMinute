@@ -19,6 +19,7 @@ import com.admoseley.quietforaminute.R
 import com.admoseley.quietforaminute.audio.ChimePlayer
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
 import com.admoseley.quietforaminute.scheduler.BackupRestoreScheduler
+import com.admoseley.quietforaminute.scheduler.EXTRA_DND_ENABLED
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
 import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
@@ -68,6 +69,7 @@ class MuteTimerService : Service() {
     @Inject lateinit var chimePlayer: ChimePlayer
     @Inject lateinit var volumeRestorer: VolumeRestorer
     @Inject lateinit var backupRestoreScheduler: BackupRestoreScheduler
+    @Inject lateinit var dndController: DndController
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var countdownJob: Job? = null
@@ -89,6 +91,7 @@ class MuteTimerService : Service() {
         val restoreVolume = intent?.getIntExtra(EXTRA_RESTORE_VOLUME, -1) ?: -1
         val streamType = intent?.getIntExtra(EXTRA_STREAM_TYPE, AudioManager.STREAM_MUSIC)
             ?: AudioManager.STREAM_MUSIC
+        val dndRequested = intent?.getBooleanExtra(EXTRA_DND_ENABLED, false) ?: false
 
         // Promote to foreground FIRST. We were started with startForegroundService(), and the
         // system throws ForegroundServiceDidNotStartInTimeException if startForeground() is not
@@ -113,7 +116,7 @@ class MuteTimerService : Service() {
         // below immediately replaces it (same fixed requestCode — see BackupRestoreScheduler).
         countdownJob?.cancel()
         countdownJob = serviceScope.launch {
-            runCountdown(durationMinutes, source, restoreVolume, streamType)
+            runCountdown(durationMinutes, source, restoreVolume, streamType, dndRequested)
         }
 
         // NOT_STICKY on purpose: if the system restarts us with a null intent we have no idea what
@@ -125,11 +128,26 @@ class MuteTimerService : Service() {
         totalMinutes: Int,
         source: String,
         manualRestoreVolume: Int,
-        streamType: Int
+        streamType: Int,
+        dndRequested: Boolean
     ) {
-        Log.d(TAG, "runCountdown: total=$totalMinutes source=$source stream=$streamType")
+        Log.d(TAG, "runCountdown: total=$totalMinutes source=$source stream=$streamType dnd=$dndRequested")
 
         if (source == SOURCE_ALARM) muteForScheduledAlarm(streamType)
+
+        // enable() reports whether *we* changed DND, which is not the same as "DND is on": if the
+        // user already had it on, it stays on and is left for them to turn off. Only what we
+        // switched on do we switch back off.
+        val dndEnabledByUs = if (dndRequested) dndController.enable() else false
+
+        // DND silences interruptions but not media playback, so a mute triggered by the ring
+        // stream would leave a video playing out loud. Silence media too in that case, and record
+        // it so the restore paths know they owe bringing it back.
+        val mediaMuted = if (dndRequested && streamType != AudioManager.STREAM_MUSIC) {
+            muteMediaAlongsideDnd()
+        } else {
+            false
+        }
 
         // elapsedRealtime is immune to wall-clock changes (NTP sync, time zone edits, manual
         // adjustment), so the countdown can neither be shortened nor extended by them — used for
@@ -141,11 +159,15 @@ class MuteTimerService : Service() {
         val endTime = startElapsed + totalMinutes.toLong() * 60_000L
         val endEpochMillis = System.currentTimeMillis() + totalMinutes.toLong() * 60_000L
 
-        prefsRepository.savePendingRestore(endEpochMillis, streamType, manualRestoreVolume)
+        prefsRepository.savePendingRestore(
+            endEpochMillis, streamType, manualRestoreVolume, dndEnabledByUs, mediaMuted
+        )
         backupRestoreScheduler.schedule(
             endEpochMillis + BackupRestoreScheduler.TRIGGER_BUFFER_MS,
             streamType,
-            manualRestoreVolume
+            manualRestoreVolume,
+            clearDnd = dndEnabledByUs,
+            restoreMedia = mediaMuted
         )
 
         while (SystemClock.elapsedRealtime() < endTime) {
@@ -157,7 +179,7 @@ class MuteTimerService : Service() {
         }
 
         Log.d(TAG, "Countdown complete, restoring stream $streamType")
-        restoreVolume(streamType, manualRestoreVolume)
+        restoreVolume(streamType, manualRestoreVolume, dndEnabledByUs, mediaMuted)
 
         // The primary restore just ran, so the backup alarm and its persisted record are no
         // longer needed — clearing them here is what keeps the backup alarm from ever actually
@@ -174,6 +196,11 @@ class MuteTimerService : Service() {
      * everything down without touching the volume — they already set it where they want it —
      * and acknowledges it the same way a normal restore does, with a Toast and the restore chime.
      *
+     * Do Not Disturb is the exception to "don't touch anything" (issue #45): the volume key the
+     * user pressed cannot clear DND, so leaving it on would strand them silenced with no timer
+     * left to end it. Same for media if we muted it alongside DND. Both are read from the persisted
+     * record *before* it is cleared, since that record is the only memory of what we changed.
+     *
      * Deliberately still calls startForeground first: this service may or may not already be in
      * the foreground depending on how it was started, and the "did not start in time" exception
      * doesn't care that we're about to stop. Same defensive pattern as the bad-input path above.
@@ -189,8 +216,16 @@ class MuteTimerService : Service() {
         countdownJob?.cancel()
 
         serviceScope.launch {
+            val pending = prefsRepository.pendingRestore.first()
             backupRestoreScheduler.cancel()
             prefsRepository.clearPendingRestore()
+
+            if (pending?.dndEnabled == true) dndController.disable()
+            if (pending?.mediaMuted == true) {
+                // -1 = the configured default: we silenced media ourselves, so there is no
+                // user-chosen per-mute level for it to go back to.
+                volumeRestorer.restore(AudioManager.STREAM_MUSIC, manualRestoreVolume = -1)
+            }
 
             Toast.makeText(
                 this@MuteTimerService,
@@ -222,12 +257,38 @@ class MuteTimerService : Service() {
         }
     }
 
+    /**
+     * Silences media on top of the stream the user already muted, so "Do Not Disturb" really means
+     * quiet rather than just uninterrupted. Returns whether media actually needed muting — already
+     * being at zero means it's the user's own setting and not ours to raise again later.
+     */
+    private fun muteMediaAlongsideDnd(): Boolean {
+        if (audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0) {
+            Log.d(TAG, "Media already silent — not taking ownership of restoring it")
+            return false
+        }
+        OverlayServiceBridge.markProgrammaticChange()
+        return try {
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+            Log.d(TAG, "Media muted alongside DND")
+            true
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Unable to mute media alongside DND", e)
+            false
+        }
+    }
+
     /** Volume-setting itself is shared with the backup/boot restore paths — see [VolumeRestorer]. */
-    private suspend fun restoreVolume(streamType: Int, manualRestoreVolume: Int) {
+    private suspend fun restoreVolume(
+        streamType: Int,
+        manualRestoreVolume: Int,
+        clearDnd: Boolean,
+        restoreMedia: Boolean
+    ) {
         Log.d(TAG, "Executing restoreVolume()")
         val chimeEnabled = prefsRepository.chimeOnRestore.first()
 
-        volumeRestorer.restore(streamType, manualRestoreVolume)
+        volumeRestorer.restore(streamType, manualRestoreVolume, clearDnd, restoreMedia)
 
         Toast.makeText(this, getString(R.string.toast_volume_restored), Toast.LENGTH_SHORT).show()
 
