@@ -400,6 +400,8 @@ When a scheduled mute fires:
 
 The **Settings** tab is the home screen of the app. All preferences are saved automatically as you change them — there is no Save button.
 
+A **Close** button (X) in the top-right corner sends the app to the background, the same as pressing your device's Home button. The app keeps running — volume monitoring and any active mute timer or schedule are unaffected — it just gets out of your way.
+
 ### 5.1 Restore Volume
 
 A slider that sets the **default volume** your device returns to when any mute timer expires.

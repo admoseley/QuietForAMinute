@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.IntentCompat
@@ -136,6 +137,10 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Settings is a permanent bottom-nav tab, not a modal, so "Close" here means "get out of my
+    // way" rather than "navigate back" — it backgrounds the app the same way pressing Home would.
+    // The volume monitor keeps running regardless; it's a foreground service, not tied to this UI.
+    val activity = LocalActivity.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -144,6 +149,11 @@ fun SettingsScreen(
                         stringResource(R.string.app_name),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
+                },
+                actions = {
+                    IconButton(onClick = { activity?.moveTaskToBack(true) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
