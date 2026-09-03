@@ -1,67 +1,88 @@
 package com.admoseley.quietforaminute.receiver
 
 import android.media.AudioManager
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Exercises [VolumeReceiver.shouldTrigger] — the pure decision function [VolumeReceiver.onReceive]
+ * Exercises [VolumeReceiver.transitionFor] — the pure decision function [VolumeReceiver.onReceive]
  * delegates to — directly with primitive values, rather than constructing a real
  * `android.content.Intent` (unavailable/stubbed in a plain JVM unit test).
  */
 class VolumeReceiverTest {
 
-    private fun trigger(
+    private fun transition(
         action: String? = VolumeReceiver.ACTION_VOLUME_CHANGED,
         streamType: Int = AudioManager.STREAM_MUSIC,
         newVolume: Int = -1,
         prevVolume: Int = -1,
         muted: Boolean = false
-    ) = VolumeReceiver.shouldTrigger(action, streamType, newVolume, prevVolume, muted)
+    ) = VolumeReceiver.transitionFor(action, streamType, newVolume, prevVolume, muted)
+
+    // --- Muting ---------------------------------------------------------------------------
 
     @Test
-    fun `volume changed from nonzero to zero triggers`() {
-        assertTrue(trigger(newVolume = 0, prevVolume = 3))
+    fun `volume changed from nonzero to zero is a mute`() {
+        assertEquals(VolumeTransition.MUTED, transition(newVolume = 0, prevVolume = 3))
     }
 
     @Test
-    fun `volume changed from zero to zero does not trigger`() {
+    fun `volume changed from zero to zero is not a transition`() {
         // Repeated zero broadcasts (e.g. a duplicate system callback) must not double-fire.
-        assertFalse(trigger(newVolume = 0, prevVolume = 0))
+        assertNull(transition(newVolume = 0, prevVolume = 0))
     }
 
     @Test
-    fun `volume changed to a nonzero value does not trigger`() {
-        assertFalse(trigger(newVolume = 5, prevVolume = 3))
-    }
-
-    @Test
-    fun `volume changed with a missing previous-volume extra still triggers`() {
+    fun `volume changed with a missing previous-volume extra is still a mute`() {
         // prevVolume == -1 means the extra was absent; treated as a transition so a real mute
         // is never missed.
-        assertTrue(trigger(newVolume = 0, prevVolume = -1))
+        assertEquals(VolumeTransition.MUTED, transition(newVolume = 0, prevVolume = -1))
     }
 
     @Test
-    fun `stream mute flag set triggers`() {
-        assertTrue(
-            trigger(action = VolumeReceiver.ACTION_STREAM_MUTE_CHANGED, muted = true)
+    fun `stream mute flag set is a mute`() {
+        assertEquals(
+            VolumeTransition.MUTED,
+            transition(action = VolumeReceiver.ACTION_STREAM_MUTE_CHANGED, muted = true)
         )
     }
 
+    // --- Unmuting -------------------------------------------------------------------------
+
     @Test
-    fun `stream mute flag cleared does not trigger`() {
-        assertFalse(
-            trigger(action = VolumeReceiver.ACTION_STREAM_MUTE_CHANGED, muted = false)
-        )
+    fun `volume raised off zero is an unmute`() {
+        assertEquals(VolumeTransition.UNMUTED, transition(newVolume = 4, prevVolume = 0))
     }
 
     @Test
-    fun `an unwatched stream never triggers regardless of action`() {
-        assertFalse(trigger(streamType = AudioManager.STREAM_ALARM, newVolume = 0, prevVolume = 3))
-        assertFalse(
-            trigger(
+    fun `volume raised with a missing previous-volume extra is an unmute`() {
+        // While a timer runs the stream sits at zero, so a non-zero reading means someone
+        // raised it even when the system omitted the previous-value extra.
+        assertEquals(VolumeTransition.UNMUTED, transition(newVolume = 4, prevVolume = -1))
+    }
+
+    @Test
+    fun `volume changed between two nonzero values is not a transition`() {
+        // Nudging 3 -> 5 crosses no line worth acting on.
+        assertNull(transition(newVolume = 5, prevVolume = 3))
+    }
+
+    @Test
+    fun `stream mute flag cleared is an unmute`() {
+        assertEquals(
+            VolumeTransition.UNMUTED,
+            transition(action = VolumeReceiver.ACTION_STREAM_MUTE_CHANGED, muted = false)
+        )
+    }
+
+    // --- Filtering ------------------------------------------------------------------------
+
+    @Test
+    fun `an unwatched stream is never a transition regardless of action`() {
+        assertNull(transition(streamType = AudioManager.STREAM_ALARM, newVolume = 0, prevVolume = 3))
+        assertNull(
+            transition(
                 action = VolumeReceiver.ACTION_STREAM_MUTE_CHANGED,
                 streamType = AudioManager.STREAM_NOTIFICATION,
                 muted = true
@@ -71,16 +92,23 @@ class VolumeReceiverTest {
 
     @Test
     fun `ring stream is watched the same as music`() {
-        assertTrue(trigger(streamType = AudioManager.STREAM_RING, newVolume = 0, prevVolume = 5))
+        assertEquals(
+            VolumeTransition.MUTED,
+            transition(streamType = AudioManager.STREAM_RING, newVolume = 0, prevVolume = 5)
+        )
+        assertEquals(
+            VolumeTransition.UNMUTED,
+            transition(streamType = AudioManager.STREAM_RING, newVolume = 5, prevVolume = 0)
+        )
     }
 
     @Test
-    fun `an unrecognized action never triggers`() {
-        assertFalse(trigger(action = "some.other.broadcast", newVolume = 0, prevVolume = 3, muted = true))
+    fun `an unrecognized action is never a transition`() {
+        assertNull(transition(action = "some.other.broadcast", newVolume = 0, prevVolume = 3, muted = true))
     }
 
     @Test
-    fun `a null action never triggers`() {
-        assertFalse(trigger(action = null, newVolume = 0, prevVolume = 3, muted = true))
+    fun `a null action is never a transition`() {
+        assertNull(transition(action = null, newVolume = 0, prevVolume = 3, muted = true))
     }
 }

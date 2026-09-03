@@ -79,6 +79,11 @@ class MuteTimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_CANCEL_TIMER) {
+            cancelTimer()
+            return START_NOT_STICKY
+        }
+
         val durationMinutes = intent?.getIntExtra(EXTRA_DURATION_MINUTES, 0) ?: 0
         val source = intent?.getStringExtra(EXTRA_SOURCE) ?: SOURCE_MANUAL
         val restoreVolume = intent?.getIntExtra(EXTRA_RESTORE_VOLUME, -1) ?: -1
@@ -165,6 +170,45 @@ class MuteTimerService : Service() {
     }
 
     /**
+     * The user restored volume by hand mid-countdown, so the timer is moot (issue #42). Tears
+     * everything down without touching the volume — they already set it where they want it —
+     * and acknowledges it the same way a normal restore does, with a Toast and the restore chime.
+     *
+     * Deliberately still calls startForeground first: this service may or may not already be in
+     * the foreground depending on how it was started, and the "did not start in time" exception
+     * doesn't care that we're about to stop. Same defensive pattern as the bad-input path above.
+     */
+    private fun cancelTimer() {
+        Log.d(TAG, "Timer cancelled by a manual volume restore")
+        ServiceCompat.startForeground(
+            this,
+            NOTIF_ID,
+            buildTimerNotification(1),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        )
+        countdownJob?.cancel()
+
+        serviceScope.launch {
+            backupRestoreScheduler.cancel()
+            prefsRepository.clearPendingRestore()
+
+            Toast.makeText(
+                this@MuteTimerService,
+                getString(R.string.toast_manual_restore_timer_cancelled),
+                Toast.LENGTH_SHORT
+            ).show()
+
+            if (prefsRepository.chimeOnRestore.first()) {
+                chimePlayer.playChime(prefsRepository.restoreChimeUri.first())
+                delay(1_000) // keep the service alive long enough for the chime to play
+            }
+
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
+
+    /**
      * Scheduled mutes silence the stream themselves. The programmatic-change window MUST be
      * opened first, otherwise the resulting VOLUME_CHANGED(0) broadcast would show the popup.
      */
@@ -240,5 +284,8 @@ class MuteTimerService : Service() {
     companion object {
         const val NOTIF_ID = 1002
         private const val TAG = "MuteTimerService"
+
+        /** Sent by [OverlayService] when the user restores volume themselves mid-countdown. */
+        const val ACTION_CANCEL_TIMER = "com.admoseley.quietforaminute.action.CANCEL_TIMER"
     }
 }

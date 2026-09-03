@@ -13,6 +13,7 @@ When you mute your device — volume-down to zero, dragging the volume slider to
 - Set mute duration with preset chips (15m/30m/1h/2h), +/- steppers, or by typing an exact value
 - Choose the volume level to restore to (adjustable per-mute)
 - Skip the timer if you just want a manual mute with no auto-restore
+- Raising the volume yourself mid-timer cancels the timer, rather than letting it override you later
 - Optional chime sounds on mute and on restore, so you know exactly when it happened
 
 ### Scheduled Mutes (Set It and Forget It)

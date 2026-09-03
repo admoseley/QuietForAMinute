@@ -7,8 +7,17 @@ import android.content.IntentFilter
 import android.media.AudioManager
 import android.util.Log
 
+/** Which way a watched stream just crossed the "is it silent?" line. */
+enum class VolumeTransition {
+    /** Went to zero, or had its mute flag set — the user silenced the phone. */
+    MUTED,
+
+    /** Came back off zero, or had its mute flag cleared — the user restored volume themselves. */
+    UNMUTED
+}
+
 /**
- * Detects the moment the user mutes the **music** or **ring** stream.
+ * Detects the moment the user mutes or unmutes the **music** or **ring** stream.
  *
  * Two system broadcasts are watched:
  *  - [ACTION_VOLUME_CHANGED]      — the stream index changed (volume keys, volume-panel slider).
@@ -18,8 +27,8 @@ import android.util.Log
  *                                    broadcast, so listening for only the first action misses
  *                                    the "tap the icon" gesture entirely.
  *
- * Only the *transition into* zero fires the callback. A broadcast that reports 0 with a
- * previous value of 0 is ignored, so repeated or aliased broadcasts cannot double-trigger.
+ * Only *transitions* fire the callback: a broadcast reporting 0 with a previous value of 0 is
+ * ignored, so repeated or aliased broadcasts cannot double-trigger.
  *
  * This class is deliberately stateless. It has no memory of the app's own programmatic volume
  * changes; filtering those out is [com.admoseley.quietforaminute.service.OverlayServiceBridge]'s
@@ -30,7 +39,7 @@ import android.util.Log
  * receivers on API 26+.
  */
 class VolumeReceiver(
-    private val onStreamMuted: (streamType: Int) -> Unit
+    private val onTransition: (transition: VolumeTransition, streamType: Int) -> Unit
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -40,8 +49,8 @@ class VolumeReceiver(
         val muted = intent.getBooleanExtra(EXTRA_STREAM_MUTED, false)
         Log.d(TAG, "action=${intent.action} stream=$streamType vol=$prevVolume->$newVolume muted=$muted")
 
-        if (shouldTrigger(intent.action, streamType, newVolume, prevVolume, muted)) {
-            onStreamMuted(streamType)
+        transitionFor(intent.action, streamType, newVolume, prevVolume, muted)?.let { transition ->
+            onTransition(transition, streamType)
         }
     }
 
@@ -53,21 +62,31 @@ class VolumeReceiver(
          * `android.content.Intent`. Reading extras for the "wrong" action (e.g. mute-flag extras
          * on a VOLUME_CHANGED broadcast) is harmless — they're simply absent, giving the default
          * -1 / false — so [onReceive] always extracts all four and lets this decide.
+         *
+         * Returns null when the broadcast isn't a transition worth acting on.
          */
-        internal fun shouldTrigger(
+        internal fun transitionFor(
             action: String?,
             streamType: Int,
             newVolume: Int,
             prevVolume: Int,
             muted: Boolean
-        ): Boolean {
-            if (streamType !in WATCHED_STREAMS) return false
+        ): VolumeTransition? {
+            if (streamType !in WATCHED_STREAMS) return null
             return when (action) {
-                // Fire only on the edge (non-zero -> zero). prev == -1 means the extra was
-                // absent; treat that as a transition so a real mute is never missed.
-                ACTION_VOLUME_CHANGED -> newVolume == 0 && prevVolume != 0
-                ACTION_STREAM_MUTE_CHANGED -> muted
-                else -> false
+                ACTION_VOLUME_CHANGED -> when {
+                    // Fire only on the edge (non-zero -> zero). prev == -1 means the extra was
+                    // absent; treat that as a transition so a real mute is never missed.
+                    newVolume == 0 && prevVolume != 0 -> VolumeTransition.MUTED
+                    // The mirror case: came back up off zero. Same reasoning about an absent
+                    // prev extra (-1) — while a mute timer is running the stream sits at zero,
+                    // so any non-zero reading means someone raised it.
+                    newVolume > 0 && prevVolume <= 0 -> VolumeTransition.UNMUTED
+                    else -> null
+                }
+                ACTION_STREAM_MUTE_CHANGED ->
+                    if (muted) VolumeTransition.MUTED else VolumeTransition.UNMUTED
+                else -> null
             }
         }
 

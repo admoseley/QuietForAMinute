@@ -269,7 +269,11 @@ At this point, your device is fully back to normal — volume restored, notifica
 
 #### What if I manually raise my volume before the timer ends?
 
-The timer continues running in the background. When it expires, the app will still attempt to set your volume to the configured restore level, potentially overriding whatever level you had manually set. If you decide to unmute yourself early, be aware that the timer is still active until it naturally expires.
+The timer cancels itself. Raising the volume with your volume buttons (or the on-screen slider, or the volume panel's mute icon) is treated as "I'm done being quiet" — the countdown stops, the countdown notification disappears, and you get a brief toast reading **"Manual restore of volume, timer has been cancelled"** plus the restore chime, if you have Chime on restore enabled.
+
+The app deliberately does **not** touch your volume in this case. You already set it where you want it, so it's left exactly there rather than being snapped to the configured restore level.
+
+This applies to scheduled mutes too — raising the volume during a scheduled mute cancels that occurrence. The schedule itself is untouched and will fire again at its next scheduled time.
 
 #### What if I mute again while a timer is already running?
 
@@ -487,6 +491,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - "Skip" option to dismiss the popup and keep the phone muted indefinitely
 - Persistent countdown notification showing remaining time (updates every ~10 seconds)
 - Automatic volume restore when the timer expires
+- Raising the volume yourself mid-timer cancels the timer (with a toast + restore chime), leaving your volume exactly where you set it
 - Toast notification on restore: "System volume has been restored"
 - Optional restore chime — plays after volume is raised
 
