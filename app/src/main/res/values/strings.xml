@@ -16,6 +16,9 @@
     <!-- Mute duration popup (system overlay) -->
     <string name="mute_dialog_title">Mute for how long?</string>
     <string name="mute_dialog_restore_volume_label">Restore Volume</string>
+    <string name="mute_dialog_dnd_label">Also turn on Do Not Disturb</string>
+    <string name="mute_dialog_dnd_description">Silences notifications and calls too</string>
+    <string name="mute_dialog_dnd_needs_permission">Needs Do Not Disturb access — grant it in Settings</string>
 
     <!-- Settings screen -->
     <string name="settings_hero_text">Mute when you need it.\nRestore when you forget.</string>
@@ -43,6 +46,8 @@
     <string name="permission_exact_alarm_subtitle">Required for scheduled mutes at precise times</string>
     <string name="permission_battery_title">Ignore battery optimization</string>
     <string name="permission_battery_subtitle">Prevents the volume monitor from being killed in the background</string>
+    <string name="permission_dnd_title">Do Not Disturb access</string>
+    <string name="permission_dnd_subtitle">Required to turn Do Not Disturb on with a mute</string>
     <string name="permission_granted">Granted</string>
 
     <string name="privacy_policy_link">Privacy Policy</string>
@@ -96,6 +101,9 @@
     <string name="schedule_repeat_on">Repeat on</string>
     <string name="schedule_start_time">Start time</string>
     <string name="schedule_mute_duration">Mute duration</string>
+    <string name="schedule_dnd_label">Also turn on Do Not Disturb</string>
+    <string name="schedule_dnd_description">Silences notifications and calls for this schedule</string>
+    <string name="schedule_dnd_badge">DND</string>
     <string name="schedule_weekdays">Weekdays</string>
     <string name="schedule_weekends">Weekends</string>
     <string name="schedule_every_day">Every day</string>

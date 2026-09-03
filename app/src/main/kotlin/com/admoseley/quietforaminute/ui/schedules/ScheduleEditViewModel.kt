@@ -23,6 +23,8 @@ data class ScheduleEditState(
     val durationHours: Int = 1,
     val durationMinutes: Int = 0,
     val isEnabled: Boolean = true,
+    /** Also turn Do Not Disturb on while this schedule's mute runs (issue #45). */
+    val dndEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val labelError: String? = null,
     val daysError: String? = null,
@@ -73,6 +75,7 @@ class ScheduleEditViewModel @Inject constructor(
                         durationHours = schedule.durationMinutes / 60,
                         durationMinutes = schedule.durationMinutes % 60,
                         isEnabled = schedule.isEnabled,
+                        dndEnabled = schedule.dndEnabled,
                         isLoading = false
                     )
                 }
@@ -90,6 +93,7 @@ class ScheduleEditViewModel @Inject constructor(
     fun setTime(hour: Int, minute: Int) = _state.update { it.copy(triggerHour = hour, triggerMinute = minute) }
     fun setDurationHours(h: Int) = _state.update { it.copy(durationHours = h, durationError = null) }
     fun setDurationMinutes(m: Int) = _state.update { it.copy(durationMinutes = m, durationError = null) }
+    fun setDndEnabled(enabled: Boolean) = _state.update { it.copy(dndEnabled = enabled) }
 
     fun save() {
         _state.update { it.copy(labelError = null, daysError = null, durationError = null) }
@@ -122,7 +126,8 @@ class ScheduleEditViewModel @Inject constructor(
                     triggerHour = s.triggerHour,
                     triggerMinute = s.triggerMinute,
                     durationMinutes = totalMinutes,
-                    isEnabled = s.isEnabled
+                    isEnabled = s.isEnabled,
+                    dndEnabled = s.dndEnabled
                 )
             )
             _events.emit(if (result.alarmsArmed) ScheduleEditEvent.Saved else ScheduleEditEvent.SavedWithoutAlarms)
@@ -138,7 +143,7 @@ class ScheduleEditViewModel @Inject constructor(
                     id = s.id, label = s.label, days = s.days,
                     triggerHour = s.triggerHour, triggerMinute = s.triggerMinute,
                     durationMinutes = s.durationHours * 60 + s.durationMinutes,
-                    isEnabled = s.isEnabled
+                    isEnabled = s.isEnabled, dndEnabled = s.dndEnabled
                 )
             )
             _events.emit(ScheduleEditEvent.Deleted)

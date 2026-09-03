@@ -1,6 +1,7 @@
 package com.admoseley.quietforaminute.ui.settings
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Intent
 import android.media.AudioManager
 import android.media.RingtoneManager
@@ -117,6 +118,13 @@ fun SettingsScreen(
         mutableStateOf(powerManager.isIgnoringBatteryOptimizations(context.packageName))
     }
 
+    // DND access (issue #45). Like the overlay permission this is a special access granted on a
+    // system settings page, so the state is re-read on ON_RESUME below rather than via a callback.
+    val notificationManager = remember { context.getSystemService(NotificationManager::class.java) }
+    val hasDndAccess = remember {
+        mutableStateOf(notificationManager.isNotificationPolicyAccessGranted)
+    }
+
     // Query the device's actual max volume (varies by manufacturer)
     val audioManager = remember { context.getSystemService(AudioManager::class.java) }
     val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
@@ -132,6 +140,7 @@ fun SettingsScreen(
                 }
                 ignoringBatteryOptimizations.value =
                     powerManager.isIgnoringBatteryOptimizations(context.packageName)
+                hasDndAccess.value = notificationManager.isNotificationPolicyAccessGranted
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -364,6 +373,20 @@ fun SettingsScreen(
                             }
                         )
                     }
+                    // Without this the DND toggles in the popup and schedule editor stay disabled;
+                    // DndController no-ops rather than throwing, so nothing breaks, it just does
+                    // nothing. ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS is a global list with no
+                    // per-package variant, so unlike the rows above it takes no package: Uri.
+                    PermissionRow(
+                        title = stringResource(R.string.permission_dnd_title),
+                        subtitle = stringResource(R.string.permission_dnd_subtitle),
+                        granted = hasDndAccess.value,
+                        onGrant = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                            )
+                        }
+                    )
                     PermissionRow(
                         title = stringResource(R.string.permission_battery_title),
                         subtitle = stringResource(R.string.permission_battery_subtitle),

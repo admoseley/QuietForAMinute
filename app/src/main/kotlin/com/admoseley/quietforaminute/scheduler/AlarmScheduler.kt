@@ -21,6 +21,8 @@ const val EXTRA_SOURCE = "extra_source"
 const val EXTRA_RESTORE_VOLUME = "extra_restore_volume"
 /** Which AudioManager stream was muted (and therefore which one to restore). */
 const val EXTRA_STREAM_TYPE = "extra_stream_type"
+/** Whether to also turn Do Not Disturb on for the duration of this mute (issue #45). */
+const val EXTRA_DND_ENABLED = "extra_dnd_enabled"
 const val SOURCE_MANUAL = "manual"
 const val SOURCE_ALARM = "alarm"
 
@@ -50,7 +52,7 @@ class AlarmScheduler @Inject constructor(
         val now = ZonedDateTime.now()
         schedule.days.forEach { day ->
             val triggerTime = AlarmTiming.nextOccurrence(now, day, schedule.triggerHour, schedule.triggerMinute)
-            val pi = buildPendingIntent(schedule.id, day, schedule.durationMinutes)
+            val pi = buildPendingIntent(schedule.id, day, schedule.durationMinutes, schedule.dndEnabled)
             // RTC_WAKEUP + allowWhileIdle: fires at wall-clock time even in Doze.
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
@@ -94,7 +96,8 @@ class AlarmScheduler @Inject constructor(
     private fun buildPendingIntent(
         scheduleId: Long,
         day: DayOfWeek,
-        durationMinutes: Int
+        durationMinutes: Int,
+        dndEnabled: Boolean
     ): PendingIntent = PendingIntent.getBroadcast(
         context,
         AlarmTiming.requestCode(scheduleId, day),
@@ -102,8 +105,11 @@ class AlarmScheduler @Inject constructor(
             putExtra(EXTRA_SCHEDULE_ID, scheduleId)
             putExtra(EXTRA_DURATION_MINUTES, durationMinutes)
             putExtra(EXTRA_SOURCE, SOURCE_ALARM)
+            putExtra(EXTRA_DND_ENABLED, dndEnabled)
         },
-        // UPDATE_CURRENT so an edited duration replaces the extras of the existing PendingIntent.
+        // UPDATE_CURRENT so an edited duration or DND choice replaces the extras of the existing
+        // PendingIntent (extras are ignored by PendingIntent matching, so the flag is what carries
+        // an edit through to an already-armed alarm).
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 

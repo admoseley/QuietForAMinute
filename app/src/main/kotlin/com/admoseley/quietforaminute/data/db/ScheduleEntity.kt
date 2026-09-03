@@ -14,7 +14,9 @@ data class ScheduleEntity(
     val triggerHour: Int,
     val triggerMinute: Int,
     val durationMinutes: Int,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    /** Also turn Do Not Disturb on for this schedule's duration (issue #45). */
+    val dndEnabled: Boolean = false
 )
 
 // DayOfWeek.value is 1 (Monday) .. 7 (Sunday), hence the `- 1` when mapping to bit positions.
@@ -28,7 +30,8 @@ fun ScheduleEntity.toDomain(): Schedule = Schedule(
     triggerHour = triggerHour,
     triggerMinute = triggerMinute,
     durationMinutes = durationMinutes,
-    isEnabled = isEnabled
+    isEnabled = isEnabled,
+    dndEnabled = dndEnabled
 )
 
 fun Schedule.toEntity(): ScheduleEntity = ScheduleEntity(
@@ -38,5 +41,6 @@ fun Schedule.toEntity(): ScheduleEntity = ScheduleEntity(
     triggerHour = triggerHour,
     triggerMinute = triggerMinute,
     durationMinutes = durationMinutes,
-    isEnabled = isEnabled
+    isEnabled = isEnabled,
+    dndEnabled = dndEnabled
 )

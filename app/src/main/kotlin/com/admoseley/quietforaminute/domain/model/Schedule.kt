@@ -9,7 +9,9 @@ data class Schedule(
     val triggerHour: Int,
     val triggerMinute: Int,
     val durationMinutes: Int,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    /** Also turn Do Not Disturb on while this schedule's mute is active (issue #45). */
+    val dndEnabled: Boolean = false
 ) {
     val formattedTime: String
         get() {

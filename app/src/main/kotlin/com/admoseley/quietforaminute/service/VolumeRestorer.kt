@@ -24,15 +24,45 @@ import kotlin.math.roundToInt
 @Singleton
 class VolumeRestorer @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val prefsRepository: PreferencesRepository
+    private val prefsRepository: PreferencesRepository,
+    private val dndController: DndController
 ) {
     private val audioManager = context.getSystemService(AudioManager::class.java)
 
     /**
+     * Undoes everything a mute timer changed.
+     *
      * @param manualRestoreVolume the per-mute override, or -1 to use the configured default
      *                            (scaled into [streamType]'s units — see [scaleVolumeUnits]).
+     * @param clearDnd            switch Do Not Disturb back off. Pass the flag the timer recorded
+     *                            when it started, never a fresh "is DND on?" check: DND the user
+     *                            turned on themselves is not ours to clear (see [DndController]).
+     * @param restoreMedia        also bring STREAM_MUSIC back. Only true when the timer muted media
+     *                            *in addition* to [streamType] — i.e. DND was on and the trigger
+     *                            was the ring stream.
      */
-    suspend fun restore(streamType: Int, manualRestoreVolume: Int) {
+    suspend fun restore(
+        streamType: Int,
+        manualRestoreVolume: Int,
+        clearDnd: Boolean = false,
+        restoreMedia: Boolean = false
+    ) {
+        // DND comes off FIRST, before any volume is touched. While a DND policy is active the
+        // system can refuse to raise the ringer out of silent (the SecurityException caught in
+        // setStream below), so clearing it afterwards would mean the restore it was blocking had
+        // already silently failed.
+        if (clearDnd) dndController.disable()
+
+        setStream(streamType, manualRestoreVolume)
+
+        // Media was silenced by us, not by the user, so it gets the configured default rather than
+        // the popup's per-mute slider value — that slider describes the stream they actually muted.
+        if (restoreMedia && streamType != AudioManager.STREAM_MUSIC) {
+            setStream(AudioManager.STREAM_MUSIC, manualRestoreVolume = -1)
+        }
+    }
+
+    private suspend fun setStream(streamType: Int, manualRestoreVolume: Int) {
         val targetMax = audioManager.getStreamMaxVolume(streamType)
         val volume = if (manualRestoreVolume >= 0) {
             manualRestoreVolume

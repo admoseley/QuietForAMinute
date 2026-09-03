@@ -7,6 +7,12 @@
     <!-- System overlay for the mute dialog (special app access, checked at runtime) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Do Not Disturb for the mute duration (special app access, checked at runtime).
+         Like SYSTEM_ALERT_WINDOW this is granted on a system settings page rather than through a
+         runtime permission dialog; the Settings screen deep-links to it. Without the grant
+         NotificationManager.setInterruptionFilter throws, so DndController no-ops instead. -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+
     <!-- Exact alarms for scheduled mutes.
          SCHEDULE_EXACT_ALARM is the user-granted variant; the Settings screen deep-links to the
          grant page and BootReceiver re-arms schedules when the grant state changes.

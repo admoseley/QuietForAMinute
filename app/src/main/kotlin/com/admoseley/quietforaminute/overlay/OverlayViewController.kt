@@ -11,6 +11,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
+import com.admoseley.quietforaminute.service.DndController
 import com.admoseley.quietforaminute.ui.overlay.MuteDurationDialog
 import com.admoseley.quietforaminute.ui.theme.QuietTheme
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +35,10 @@ import kotlin.math.roundToInt
 class OverlayViewController(
     private val context: Context,
     private val prefsRepository: PreferencesRepository,
-    private val onDurationSelected: (hours: Int, minutes: Int, restoreVolume: Int, streamType: Int) -> Unit
+    private val dndController: DndController,
+    private val onDurationSelected: (
+        hours: Int, minutes: Int, restoreVolume: Int, streamType: Int, dndEnabled: Boolean
+    ) -> Unit
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val audioManager = context.getSystemService(AudioManager::class.java)
@@ -68,6 +72,11 @@ class OverlayViewController(
                 (defaultMusicUnits.toFloat() / musicMax * maxVolume).roundToInt()
             }.coerceIn(0, maxVolume)
 
+            // Read once here rather than inside the composable: the popup is short-lived and the
+            // grant cannot change while it is on screen.
+            val dndAvailable = dndController.canControlDnd()
+            val initialDndEnabled = prefsRepository.dndWithMute.first()
+
             // dismiss() may have run while we were suspended reading DataStore.
             if (!showing) return@launch
 
@@ -81,8 +90,10 @@ class OverlayViewController(
                         MuteDurationDialog(
                             initialRestoreVolume = initialRestoreVolume,
                             maxVolume = maxVolume,
-                            onConfirm = { h, m, v ->
-                                onDurationSelected(h, m, v, streamType)
+                            initialDndEnabled = initialDndEnabled,
+                            dndAvailable = dndAvailable,
+                            onConfirm = { h, m, v, dnd ->
+                                onDurationSelected(h, m, v, streamType, dnd)
                                 dismiss()
                             },
                             onDismiss = { dismiss() }

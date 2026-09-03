@@ -13,6 +13,7 @@ When you mute your device — volume-down to zero, dragging the volume slider to
 - Set mute duration with preset chips (15m/30m/1h/2h), +/- steppers, or by typing an exact value
 - Choose the volume level to restore to (adjustable per-mute)
 - Skip the timer if you just want a manual mute with no auto-restore
+- Optionally turn on **Do Not Disturb** for the same duration, so notifications and calls stay quiet too — the choice is remembered for next time
 - Raising the volume yourself mid-timer cancels the timer, rather than letting it override you later
 - Optional chime sounds on mute and on restore, so you know exactly when it happened
 
@@ -22,6 +23,7 @@ Create recurring mute schedules for events that happen on a regular basis — a 
 - Schedule by day of week (weekdays, weekends, or any combination)
 - Set a specific start time and mute duration per schedule
 - Enable or disable individual schedules without deleting them
+- Turn Do Not Disturb on per schedule, shown as a **DND** badge on the schedule card
 - Schedules survive device reboots (re-armed on boot via `BootReceiver`)
 
 ### Settings
@@ -37,6 +39,7 @@ The app requests these special permissions as needed, each explained in the Sett
 |---|---|
 | Display over other apps | Show the mute timer popup on top of whatever app is open |
 | Schedule exact alarms | Fire scheduled mutes at a precise time (denied by default on Android 14+, grant from Settings) |
+| Do Not Disturb access | Turn Do Not Disturb on and off alongside a mute. Without it the DND toggles stay disabled; everything else works as normal |
 | Ignore battery optimization | Keeps the volume-monitor service from being killed by aggressive OEM battery managers — a likely cause of the popup not appearing consistently |
 
 ## How It Works
@@ -48,6 +51,24 @@ The app runs two foreground services:
 
 ### Mute detection
 `OverlayService` registers a dynamic `VolumeReceiver` for two system broadcasts: `VOLUME_CHANGED_ACTION` (volume keys, panel slider) and `STREAM_MUTE_CHANGED_ACTION` (the mute icon in the volume panel, ringer → vibrate). Only a *transition* into zero on the media or ring stream counts, so repeated zero broadcasts cannot double-fire. When the app changes volume itself (scheduled mute, timer restore) it opens a short time window via `OverlayServiceBridge`; broadcasts inside that window are ignored. The window expires by itself, so it can never get "stuck" and swallow a real mute.
+
+### Do Not Disturb
+DND is layered **on top of** the volume mute, never instead of it: the standard filter
+(`INTERRUPTION_FILTER_PRIORITY`) stops notifications and calls interrupting you, but it does not
+silence media playback — a video keeps playing at full volume under DND alone. Muting is what makes
+the phone quiet; DND is what stops it buzzing.
+
+Two details the app is careful about:
+
+- **It only undoes what it did.** If DND was already on before the timer started, it is left on when
+  the timer ends — the app never silently clears a setting the user made themselves.
+- **DND is cleared on every exit path**, including the ones that exist for when things go wrong: the
+  backup restore alarm (process killed mid-timer) and the boot resume (device rebooted mid-timer)
+  both turn it off, so a lost countdown can never strand the phone in Do Not Disturb.
+
+If the popup was triggered by muting the *ring* stream and DND is switched on, the app also silences
+the media stream, since ring + DND alone would still leave a video playing out loud. Media is only
+restored afterwards if the app was the one that muted it.
 
 ### Scheduling
 Scheduled mutes are managed by `AlarmManager` with exact-alarm PendingIntents, one per (schedule × day-of-week) combination. Each alarm is one-shot and is re-armed for the following week by `AlarmReceiver` the moment it fires, so a killed process or an interrupted countdown cannot stop a schedule from repeating. `BootReceiver` re-arms everything after a reboot, app update, clock/time-zone change, or when the exact-alarm permission is granted.

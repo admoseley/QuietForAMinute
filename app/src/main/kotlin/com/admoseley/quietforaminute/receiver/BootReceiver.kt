@@ -99,14 +99,21 @@ class BootReceiver : BroadcastReceiver() {
         val pending = prefsRepository.pendingRestore.first() ?: return
         if (pending.endEpochMillis <= System.currentTimeMillis()) {
             Log.w(TAG, "Device rebooted after a mute timer's end time already passed — restoring now")
-            volumeRestorer.restore(pending.streamType, pending.manualRestoreVolume)
+            volumeRestorer.restore(
+                pending.streamType,
+                pending.manualRestoreVolume,
+                clearDnd = pending.dndEnabled,
+                restoreMedia = pending.mediaMuted
+            )
             prefsRepository.clearPendingRestore()
         } else {
             Log.d(TAG, "Device rebooted mid-timer — re-arming the backup restore alarm")
             backupRestoreScheduler.schedule(
                 pending.endEpochMillis + BackupRestoreScheduler.TRIGGER_BUFFER_MS,
                 pending.streamType,
-                pending.manualRestoreVolume
+                pending.manualRestoreVolume,
+                clearDnd = pending.dndEnabled,
+                restoreMedia = pending.mediaMuted
             )
         }
     }

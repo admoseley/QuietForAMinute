@@ -14,6 +14,10 @@ import javax.inject.Singleton
 /** Extras carried by the backup-restore alarm's PendingIntent. */
 const val EXTRA_BACKUP_STREAM_TYPE = "extra_backup_stream_type"
 const val EXTRA_BACKUP_RESTORE_VOLUME = "extra_backup_restore_volume"
+/** Whether this timer turned Do Not Disturb on, and so owes turning it back off. */
+const val EXTRA_BACKUP_CLEAR_DND = "extra_backup_clear_dnd"
+/** Whether this timer additionally muted STREAM_MUSIC (DND on, ring stream triggered). */
+const val EXTRA_BACKUP_RESTORE_MEDIA = "extra_backup_restore_media"
 
 /**
  * Arms a single exact alarm that performs the mute-timer restore even if
@@ -41,8 +45,14 @@ class BackupRestoreScheduler @Inject constructor(
      * "the primary path failed"; a possibly-late backup restore beats a crash or no restore at
      * all. `set()` needs no special permission on any API level.
      */
-    fun schedule(triggerAtEpochMillis: Long, streamType: Int, manualRestoreVolume: Int) {
-        val pi = pendingIntent(streamType, manualRestoreVolume)
+    fun schedule(
+        triggerAtEpochMillis: Long,
+        streamType: Int,
+        manualRestoreVolume: Int,
+        clearDnd: Boolean = false,
+        restoreMedia: Boolean = false
+    ) {
+        val pi = pendingIntent(streamType, manualRestoreVolume, clearDnd, restoreMedia)
         val canBeExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
         if (canBeExact) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMillis, pi)
@@ -63,13 +73,20 @@ class BackupRestoreScheduler @Inject constructor(
         pi.cancel()
     }
 
-    private fun pendingIntent(streamType: Int, manualRestoreVolume: Int): PendingIntent =
+    private fun pendingIntent(
+        streamType: Int,
+        manualRestoreVolume: Int,
+        clearDnd: Boolean,
+        restoreMedia: Boolean
+    ): PendingIntent =
         PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,
             Intent(context, BackupRestoreReceiver::class.java).apply {
                 putExtra(EXTRA_BACKUP_STREAM_TYPE, streamType)
                 putExtra(EXTRA_BACKUP_RESTORE_VOLUME, manualRestoreVolume)
+                putExtra(EXTRA_BACKUP_CLEAR_DND, clearDnd)
+                putExtra(EXTRA_BACKUP_RESTORE_MEDIA, restoreMedia)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

@@ -88,6 +88,23 @@ Some manufacturers' battery managers aggressively kill background apps to save p
 3. A system dialog appears asking to allow the app to ignore battery optimizations. Confirm it.
 4. Return to the app. The row will show "Granted".
 
+#### Do Not Disturb Access
+
+Only needed if you want to use the **Also turn on Do Not Disturb** option, in the mute popup or on a
+schedule. Without it, those switches stay greyed out and the rest of the app works exactly as normal
+— it is entirely optional.
+
+Like the overlay permission, this is a "special access" granted on a system settings page rather than
+through a normal permission dialog.
+
+**Steps to grant:**
+
+1. On the **Settings** screen, scroll to **Permissions**.
+2. Find the row labeled **"Do Not Disturb access"** and tap **Grant**.
+3. Android opens its **Do Not Disturb access** list, showing every app that has requested it.
+4. Find **Be Quiet For a Minute** in the list and turn its switch on. Confirm the system prompt.
+5. Press back to return to the app. The row will now show "Granted".
+
 #### Notification Permission (Android 13+)
 
 On first launch on Android 13 or newer, the app will ask for permission to post notifications. Tap **Allow**. This permission is required for:
@@ -179,6 +196,27 @@ The center of the card shows a **duration picker**: four preset chips (**15m**, 
   - 1-hour class → tap the **1h** preset
   - 90-minute film → tap **1h**, then **+** once under Minutes
   - Overnight silence → **+** the Hours stepper to 8
+
+#### Also Turn On Do Not Disturb
+
+Below the duration picker is an **Also turn on Do Not Disturb** switch. Muting the volume silences
+sound, but notifications and calls can still buzz, light up your screen and interrupt you. Turning
+this on puts the phone into Do Not Disturb for exactly the same duration as the mute, and takes it
+back out when the timer ends.
+
+- **It's an addition, not a replacement.** Do Not Disturb on its own does *not* silence media — a
+  video or podcast keeps playing at full volume under DND. The volume mute is what makes the phone
+  quiet; DND is what stops it interrupting you. The app always does both together.
+- **Your choice is remembered.** However you leave the switch, that's how it comes back next time.
+- **If DND was already on**, the app leaves it on when the timer ends. It only turns off DND that it
+  turned on itself, so it never undoes a setting you made yourself.
+- **If the switch is greyed out**, Do Not Disturb access hasn't been granted yet. The row will read
+  *"Needs Do Not Disturb access — grant it in Settings"* — see [Do Not Disturb Access](#do-not-disturb-access)
+  below. Everything else in the app works normally without it.
+
+One extra detail: if you muted the *ring* stream rather than media, switching DND on also mutes
+media, because ring + DND alone would still leave a video playing out loud. Media is only put back
+afterwards if the app was the one that silenced it.
 
 #### Adjusting the Restore Volume (Per-Mute Override)
 
@@ -273,6 +311,10 @@ The timer cancels itself. Raising the volume with your volume buttons (or the on
 
 The app deliberately does **not** touch your volume in this case. You already set it where you want it, so it's left exactly there rather than being snapped to the configured restore level.
 
+Do Not Disturb is the one exception to "don't touch anything". If the timer turned DND on, cancelling
+it turns DND back off — a volume key can't clear DND, so leaving it on would strand you silenced with
+no timer left to end it.
+
 This applies to scheduled mutes too — raising the volume during a scheduled mute cancels that occurrence. The schedule itself is untouched and will fire again at its next scheduled time.
 
 #### What if I mute again while a timer is already running?
@@ -341,6 +383,14 @@ At least one day must be selected — saving will show an error if no days are c
 #### Start Time
 
 The current start time is displayed in large text (e.g., **9:00 AM**). Tap **Change** to open a time picker dialog and set the exact hour and minute you want the mute to begin.
+
+#### Also Turn On Do Not Disturb
+
+A switch identical to the one in the mute popup, saved as part of this schedule. When it's on, the
+schedule turns Do Not Disturb on when it fires and off again when its mute duration ends. Schedules
+with it enabled show a **DND** badge on their card in the schedule list.
+
+Existing schedules created before this option existed default to off, so their behaviour is unchanged.
 
 #### Mute Duration
 
@@ -487,6 +537,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Displays a floating overlay popup over any app (not above the lock screen)
 - Duration picker with three ways in: 15m/30m/1h/2h presets, +/- steppers, and editable fields for exact values (hours 0–23, minutes 0–59)
 - Per-mute restore volume override via in-dialog slider
+- Optional "Also turn on Do Not Disturb" switch, applied for the same duration and remembered between mutes
 - Optional mute chime — plays immediately when mute is detected
 - "Skip" option to dismiss the popup and keep the phone muted indefinitely
 - Persistent countdown notification showing remaining time (updates every ~10 seconds)
@@ -501,6 +552,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Quick-preset day selectors: Weekdays, Weekends, Every day
 - Precise start time picker in 12-hour format
 - Mute duration picker, independent of start time (same preset-chips-and-stepper picker as manual mute)
+- Per-schedule "Also turn on Do Not Disturb" switch, shown as a DND badge on the schedule card
 - Per-schedule enable/disable toggle — suspend a schedule without deleting it
 - Swipe-to-delete on the schedule list
 - Delete from the schedule editor with a confirmation dialog
@@ -514,12 +566,14 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Independent chime sounds for mute and restore events
 - Chime sound selection via system ringtone picker (supports any notification sound)
 - Light / Dark / System theme selection
-- Permissions status panel with one-tap deep links to system settings
+- Permissions status panel with one-tap deep links to system settings (overlay, exact alarms, Do Not Disturb access, battery optimization)
 
 ### Reliability & Background Operation
 - Always-on volume monitor foreground service (silent, persistent notification)
 - Mute timer foreground service prevents Android from killing the countdown
 - Backup restore alarm and reboot-safe persisted restore state mean volume still comes back even if the app's process is killed or the device restarts mid-timer (does not cover force-stopping the app — see [Section 3.5](#35-edge-cases--behavior-notes))
+- Do Not Disturb is cleared on those same fallback paths, so a lost countdown can never leave the phone stuck in DND
+- Do Not Disturb the user turned on themselves is never cleared by the app — only DND it enabled itself
 - Self-expiring suppression window prevents the mute popup from re-triggering when the app itself changes volume
 - Schedules re-arm themselves the instant they fire, and again after reboot, update, clock change, or permission grant
 - Exact-alarm scheduling ensures scheduled mutes fire within seconds of the configured time
