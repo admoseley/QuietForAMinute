@@ -21,6 +21,9 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    // Activity-scoped instance used only for the theme. SettingsScreen gets its own
+    // nav-entry-scoped SettingsViewModel via hiltViewModel(); both read the same DataStore so
+    // they stay consistent, but a dedicated ThemeViewModel would make the intent clearer.
     private val viewModel: SettingsViewModel by viewModels()
 
     private val requestNotificationPermission = registerForActivityResult(
@@ -62,6 +65,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startOverlayService() {
+        // Starting from a visible Activity is always permitted; OverlayService is START_STICKY and
+        // is also (re)started by BootReceiver, so this call mostly matters on first launch.
         startForegroundService(Intent(this, OverlayService::class.java))
     }
 }

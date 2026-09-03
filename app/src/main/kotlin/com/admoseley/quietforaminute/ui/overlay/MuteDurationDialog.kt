@@ -15,6 +15,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
+/**
+ * Content of the system-overlay popup. Hosted by OverlayViewController inside a ComposeView, so
+ * it must not use Dialog()/AlertDialog() (those need an Activity window).
+ *
+ * @param maxVolume max index of the stream that was muted — ring and music differ, so the caller
+ *                  passes the right one and [initialRestoreVolume] is already in those units.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuteDurationDialog(
@@ -23,7 +30,9 @@ fun MuteDurationDialog(
     onConfirm: (hours: Int, minutes: Int, restoreVolume: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Using TimePickerState to manage the hours and minutes
+    // A TimePicker is repurposed as an hours:minutes *duration* input (24h mode so the hour dial
+    // reads 0..23). It works, but the clock-face metaphor is a known point of confusion; a pair
+    // of number steppers or preset chips (15m / 30m / 1h / 2h) would be more direct.
     val timePickerState = rememberTimePickerState(
         initialHour = 0,
         initialMinute = 30,
