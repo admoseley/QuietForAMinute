@@ -46,7 +46,7 @@ The app works in two complementary ways:
 
 ### 2.1 Granting Required Permissions
 
-Quiet For A Minute needs two special permissions to function. Both are explained inside the app on the **Settings** screen, under the **Permissions** section.
+Quiet For A Minute needs a few special permissions to function fully. Each is explained inside the app on the **Settings** screen, under the **Permissions** section.
 
 #### Display Over Other Apps (Overlay Permission)
 
@@ -76,6 +76,17 @@ This permission is required for scheduled mutes to fire at a precise time. Witho
 5. Return to the app. The row will show "Granted".
 
 > **Note:** On Android 11 and below, exact alarm permission is automatically available and this row will not appear.
+
+#### Ignore Battery Optimization
+
+Some manufacturers' battery managers aggressively kill background apps to save power, which can stop the always-on volume monitor from running — a likely cause of the mute popup showing up only sometimes. Granting this exemption keeps the monitor alive.
+
+**Steps to grant:**
+
+1. On the **Settings** screen, scroll to **Permissions**.
+2. Find the row labeled **"Ignore battery optimization"**. If it shows a **Grant** button, tap it.
+3. A system dialog appears asking to allow the app to ignore battery optimizations. Confirm it.
+4. Return to the app. The row will show "Granted".
 
 #### Notification Permission (Android 13+)
 
@@ -454,6 +465,7 @@ At the bottom of the Settings screen, the **Permissions** section shows the curr
 |---|---|---|
 | Display over other apps | Shows the mute popup over the lock screen | Green check (Granted) or red warning (Grant button) |
 | Exact alarms (Android 12+) | Fires scheduled mutes at the precise time | Green check (Granted) or red warning (Grant button) |
+| Ignore battery optimization | Keeps the volume monitor from being killed in the background | Green check (Granted) or red warning (Grant button) |
 
 Tapping **Grant** for any row opens the relevant system settings page directly. After granting, return to the app — the status refreshes automatically when the app resumes.
 
@@ -507,7 +519,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 ## 7. Frequently Asked Questions
 
 **The mute popup didn't appear when I pressed volume down.**
-Check that "Show timer popup on mute" is enabled in Settings, and that the "Display over other apps" permission is granted. If the permission was recently revoked, the app will post a notification prompting you to re-grant it. Also check that the "Volume monitoring active" notification is present — if your phone's battery manager has killed the monitor service, open the app once to restart it, and consider exempting the app from battery optimisation in system settings.
+Check that "Show timer popup on mute" is enabled in Settings, and that the "Display over other apps" permission is granted. If the permission was recently revoked, the app will post a notification prompting you to re-grant it. Also check that the "Volume monitoring active" notification is present, and that "Ignore battery optimization" shows Granted in the Permissions section — if your phone's battery manager has killed the monitor service, granting that exemption is the fix, not just reopening the app.
 
 **My scheduled mute didn't fire.**
 Make sure the "Exact alarms" permission is granted (Settings → Permissions). Without it, Android may defer scheduled alarms significantly. Also confirm the schedule is enabled (the toggle on the card should be on).

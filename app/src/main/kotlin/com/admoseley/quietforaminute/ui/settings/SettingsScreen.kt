@@ -6,6 +6,7 @@ import android.media.AudioManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -106,6 +107,14 @@ fun SettingsScreen(
         )
     }
 
+    // Aggressive OEM battery managers can kill the always-on OverlayService, which is a likely
+    // cause of "the popup only shows up sometimes". This exemption is declared in the manifest
+    // (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) but was never surfaced in the UI until now.
+    val powerManager = remember { context.getSystemService(PowerManager::class.java) }
+    val ignoringBatteryOptimizations = remember {
+        mutableStateOf(powerManager.isIgnoringBatteryOptimizations(context.packageName))
+    }
+
     // Query the device's actual max volume (varies by manufacturer)
     val audioManager = remember { context.getSystemService(AudioManager::class.java) }
     val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
@@ -119,6 +128,8 @@ fun SettingsScreen(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     canScheduleExactAlarms.value = alarmManager.canScheduleExactAlarms()
                 }
+                ignoringBatteryOptimizations.value =
+                    powerManager.isIgnoringBatteryOptimizations(context.packageName)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -338,6 +349,18 @@ fun SettingsScreen(
                             }
                         )
                     }
+                    PermissionRow(
+                        title = "Ignore battery optimization",
+                        subtitle = "Prevents the volume monitor from being killed in the background",
+                        granted = ignoringBatteryOptimizations.value,
+                        onGrant = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                    data = "package:${context.packageName}".toUri()
+                                }
+                            )
+                        }
+                    )
                 }
             }
 
