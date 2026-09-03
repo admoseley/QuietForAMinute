@@ -1,7 +1,0 @@
-com.admoseley.quietforaminute.app-pngs-0 /Users/admoseley/Development/QuietForAMinute/app/build/generated/res/pngs/debug
-com.admoseley.quietforaminute.app-updated_navigation_xml-1 /Users/admoseley/Development/QuietForAMinute/app/build/generated/updated_navigation_xml/debug
-com.admoseley.quietforaminute.app-packageDebugResources-2 /Users/admoseley/Development/QuietForAMinute/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.admoseley.quietforaminute.app-packageDebugResources-3 /Users/admoseley/Development/QuietForAMinute/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.admoseley.quietforaminute.app-debug-4 /Users/admoseley/Development/QuietForAMinute/app/build/intermediates/merged_res/debug/mergeDebugResources
-com.admoseley.quietforaminute.app-debug-5 /Users/admoseley/Development/QuietForAMinute/app/src/debug/res
-com.admoseley.quietforaminute.app-main-6 /Users/admoseley/Development/QuietForAMinute/app/src/main/res

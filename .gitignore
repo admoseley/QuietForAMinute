@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local machine configuration (SDK path, Claude Code local permissions)
+local.properties
+.claude/settings.local.json
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing material — never commit keystores
+*.jks
+*.keystore
+keystore.properties
