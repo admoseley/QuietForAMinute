@@ -23,6 +23,7 @@ import com.admoseley.quietforaminute.data.datastore.PreferencesRepository
 import com.admoseley.quietforaminute.overlay.OverlayViewController
 import com.admoseley.quietforaminute.receiver.VolumeReceiver
 import com.admoseley.quietforaminute.receiver.VolumeTransition
+import com.admoseley.quietforaminute.scheduler.EXTRA_DND_ENABLED
 import com.admoseley.quietforaminute.scheduler.EXTRA_DURATION_MINUTES
 import com.admoseley.quietforaminute.scheduler.EXTRA_RESTORE_VOLUME
 import com.admoseley.quietforaminute.scheduler.EXTRA_SOURCE
@@ -60,6 +61,7 @@ class OverlayService : Service() {
 
     @Inject lateinit var prefsRepository: PreferencesRepository
     @Inject lateinit var chimePlayer: ChimePlayer
+    @Inject lateinit var dndController: DndController
 
     private var volumeReceiver: VolumeReceiver? = null
     private lateinit var overlayViewController: OverlayViewController
@@ -74,7 +76,8 @@ class OverlayService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         )
 
-        overlayViewController = OverlayViewController(this, prefsRepository, ::onDurationChosen)
+        overlayViewController =
+            OverlayViewController(this, prefsRepository, dndController, ::onDurationChosen)
 
         // VOLUME_CHANGED / STREAM_MUTE_CHANGED are system broadcasts: RECEIVER_NOT_EXPORTED still
         // receives them (they originate from the system UID) while refusing any other sender.
@@ -148,15 +151,25 @@ class OverlayService : Service() {
         }
     }
 
-    private fun onDurationChosen(hours: Int, minutes: Int, restoreVolume: Int, streamType: Int) {
+    private fun onDurationChosen(
+        hours: Int,
+        minutes: Int,
+        restoreVolume: Int,
+        streamType: Int,
+        dndEnabled: Boolean
+    ) {
         val durationMinutes = hours * 60 + minutes
         if (durationMinutes <= 0) return
+
+        // Remember the DND choice so the toggle comes back the way they left it next time.
+        serviceScope.launch { prefsRepository.setDndWithMute(dndEnabled) }
 
         val intent = Intent(this, MuteTimerService::class.java).apply {
             putExtra(EXTRA_DURATION_MINUTES, durationMinutes)
             putExtra(EXTRA_SOURCE, SOURCE_MANUAL)
             putExtra(EXTRA_RESTORE_VOLUME, restoreVolume)
             putExtra(EXTRA_STREAM_TYPE, streamType)
+            putExtra(EXTRA_DND_ENABLED, dndEnabled)
         }
         try {
             startForegroundService(intent)

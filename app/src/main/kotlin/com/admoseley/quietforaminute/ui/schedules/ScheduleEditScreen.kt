@@ -1,5 +1,6 @@
 package com.admoseley.quietforaminute.ui.schedules
 
+import android.app.NotificationManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -7,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +47,12 @@ fun ScheduleEditScreen(
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showDurationPicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    // Read live rather than remembered: the user can leave for system settings to grant DND access
+    // and come straight back to this screen, and the toggle should be usable when they return.
+    val context = LocalContext.current
+    val dndAvailable = context.getSystemService(NotificationManager::class.java)
+        .isNotificationPolicyAccessGranted
 
     val isNew = scheduleId < 0
 
@@ -191,6 +199,33 @@ fun ScheduleEditScreen(
                     OutlinedButton(onClick = { showDurationPicker = true }) {
                         Text(stringResource(R.string.action_change))
                     }
+                }
+            }
+
+            // Do Not Disturb (issue #45). Offered on top of the volume mute, not instead of it —
+            // DND stops notifications and calls interrupting but does not silence media.
+            SectionCard(title = stringResource(R.string.schedule_dnd_label)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (dndAvailable) R.string.schedule_dnd_description
+                            else R.string.mute_dialog_dnd_needs_permission
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = state.dndEnabled && dndAvailable,
+                        onCheckedChange = { viewModel.setDndEnabled(it) },
+                        enabled = dndAvailable
+                    )
                 }
             }
         }

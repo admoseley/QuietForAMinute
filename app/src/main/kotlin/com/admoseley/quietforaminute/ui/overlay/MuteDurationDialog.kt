@@ -21,18 +21,25 @@ import kotlin.math.roundToInt
  *
  * @param maxVolume max index of the stream that was muted — ring and music differ, so the caller
  *                  passes the right one and [initialRestoreVolume] is already in those units.
+ * @param initialDndEnabled last state of the DND toggle, so the choice is sticky between mutes.
+ * @param dndAvailable whether DND access has been granted. When false the toggle is shown but
+ *                     disabled, with a hint pointing at Settings — hiding it entirely would leave
+ *                     no clue the feature exists.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuteDurationDialog(
     initialRestoreVolume: Int,
     maxVolume: Int,
-    onConfirm: (hours: Int, minutes: Int, restoreVolume: Int) -> Unit,
+    initialDndEnabled: Boolean,
+    dndAvailable: Boolean,
+    onConfirm: (hours: Int, minutes: Int, restoreVolume: Int, dndEnabled: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var hours by remember { mutableIntStateOf(0) }
     var minutes by remember { mutableIntStateOf(30) }
     var restoreVolume by remember { mutableIntStateOf(initialRestoreVolume) }
+    var dndEnabled by remember { mutableStateOf(initialDndEnabled && dndAvailable) }
 
     Surface(
         shape = RoundedCornerShape(28.dp),
@@ -68,6 +75,49 @@ fun MuteDurationDialog(
                 onMinutesChange = { minutes = it },
                 modifier = Modifier.padding(vertical = 8.dp)
             )
+
+            HorizontalDivider()
+
+            // DND is offered as an addition to the mute, never a replacement: the standard filter
+            // stops notifications and calls interrupting but does not silence media, so the volume
+            // mute is still what makes the phone quiet.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_do_not_disturb_on),
+                        contentDescription = null,
+                        tint = if (dndAvailable) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.mute_dialog_dnd_label),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        Text(
+                            stringResource(
+                                if (dndAvailable) R.string.mute_dialog_dnd_description
+                                else R.string.mute_dialog_dnd_needs_permission
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = dndEnabled,
+                        onCheckedChange = { dndEnabled = it },
+                        enabled = dndAvailable
+                    )
+                }
+            }
 
             HorizontalDivider()
 
@@ -120,7 +170,7 @@ fun MuteDurationDialog(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { onConfirm(hours, minutes, restoreVolume) },
+                    onClick = { onConfirm(hours, minutes, restoreVolume, dndEnabled) },
                     enabled = hours > 0 || minutes > 0
                 ) {
                     Text(stringResource(R.string.action_start))

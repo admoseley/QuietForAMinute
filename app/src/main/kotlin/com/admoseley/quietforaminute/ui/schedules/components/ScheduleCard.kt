@@ -91,6 +91,25 @@ fun ScheduleCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                // Only shown when on, so the row stays quiet for the common case.
+                if (schedule.dndEnabled) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_do_not_disturb_on),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.schedule_dnd_badge),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }
