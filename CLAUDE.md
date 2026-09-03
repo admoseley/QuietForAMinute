@@ -69,6 +69,10 @@ Bottom nav with 2 tabs: `settings` and `schedules`. Plus `schedules/edit?id={id}
 ## Tech Stack
 - Kotlin 2.2.10 (bundled with AGP 9.4.0 — keep the Compose plugin version in step with it), Compose BOM 2026.08.00, Material3
 - Room 2.8.4, DataStore 1.2.1, Hilt 2.60.1, Navigation 2.10.0, Lifecycle 2.11.0
+- No icon library dependency — the ~16 icons the app actually uses are local vector drawables in
+  `res/drawable/ic_*.xml`, referenced via `painterResource()`. Replaced the deprecated, frozen
+  `material-icons-extended` artifact (issue #16); path data is copied verbatim from Google's
+  Apache-2.0-licensed `material-design-icons` repo, not hand-authored.
 - KSP (not kapt) for Room compiler and Hilt compiler
 - Gradle 9.6, AGP 9.4.0. All versions in `gradle/libs.versions.toml`.
 

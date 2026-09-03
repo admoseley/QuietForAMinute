@@ -28,9 +28,6 @@ compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-# material-icons-extended is frozen at 1.7.8 (still pinned by the BOM) and deprecated upstream.
-# Long-term replacement: vector drawables for the ~12 icons this app actually uses.
-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 

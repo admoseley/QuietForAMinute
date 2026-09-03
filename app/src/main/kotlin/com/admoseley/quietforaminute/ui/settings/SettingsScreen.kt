@@ -17,11 +17,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -158,7 +153,7 @@ fun SettingsScreen(
                 },
                 actions = {
                     IconButton(onClick = { activity?.moveTaskToBack(true) }) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.action_close))
+                        Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.action_close))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -217,9 +212,11 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = if (defaultVolume == 0) Icons.AutoMirrored.Filled.VolumeOff
-                            else if (defaultVolume < maxVolume / 2) Icons.AutoMirrored.Filled.VolumeDown
-                            else Icons.AutoMirrored.Filled.VolumeUp,
+                            painter = painterResource(
+                                if (defaultVolume == 0) R.drawable.ic_volume_off
+                                else if (defaultVolume < maxVolume / 2) R.drawable.ic_volume_down
+                                else R.drawable.ic_volume_up
+                            ),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -268,7 +265,7 @@ fun SettingsScreen(
                             }
                         },
                         leadingContent = {
-                            Icon(Icons.Default.Palette, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(R.drawable.ic_palette), null, tint = MaterialTheme.colorScheme.primary)
                         }
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -276,7 +273,7 @@ fun SettingsScreen(
                         headlineContent = { Text(stringResource(R.string.settings_show_popup_title)) },
                         supportingContent = { Text(stringResource(R.string.settings_show_popup_description)) },
                         leadingContent = {
-                            Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(R.drawable.ic_timer), null, tint = MaterialTheme.colorScheme.primary)
                         },
                         trailingContent = {
                             Switch(
@@ -299,7 +296,7 @@ fun SettingsScreen(
                             Text(stringResource(R.string.settings_chime_sound_format, name))
                         },
                         leadingContent = {
-                            Icon(Icons.AutoMirrored.Filled.VolumeUp, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(R.drawable.ic_volume_up), null, tint = MaterialTheme.colorScheme.primary)
                         },
                         trailingContent = {
                             Switch(
@@ -320,7 +317,7 @@ fun SettingsScreen(
                             Text(stringResource(R.string.settings_chime_sound_format, name))
                         },
                         leadingContent = {
-                            Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(painterResource(R.drawable.ic_notifications_active), null, tint = MaterialTheme.colorScheme.primary)
                         },
                         trailingContent = {
                             Switch(
@@ -594,7 +591,7 @@ private fun PermissionRow(
         supportingContent = { Text(subtitle) },
         leadingContent = {
             Icon(
-                imageVector = if (granted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                painter = painterResource(if (granted) R.drawable.ic_check_circle else R.drawable.ic_warning),
                 contentDescription = null,
                 tint = if (granted) MaterialTheme.colorScheme.tertiary
                        else MaterialTheme.colorScheme.error

@@ -1,13 +1,11 @@
 package com.admoseley.quietforaminute.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -122,7 +120,7 @@ private fun DurationStepper(
                 enabled = value > min,
                 modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Remove, contentDescription = decreaseCd, modifier = Modifier.size(18.dp))
+                Icon(painterResource(R.drawable.ic_remove), contentDescription = decreaseCd, modifier = Modifier.size(18.dp))
             }
             Text(
                 text = value.toString(),
@@ -139,7 +137,7 @@ private fun DurationStepper(
                 enabled = value < max,
                 modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = increaseCd, modifier = Modifier.size(18.dp))
+                Icon(painterResource(R.drawable.ic_add), contentDescription = increaseCd, modifier = Modifier.size(18.dp))
             }
         }
     }
