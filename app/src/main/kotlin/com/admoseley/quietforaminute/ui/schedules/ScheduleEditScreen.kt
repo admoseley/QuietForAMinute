@@ -3,13 +3,11 @@ package com.admoseley.quietforaminute.ui.schedules
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,14 +59,14 @@ fun ScheduleEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (!isNew) {
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(
-                                Icons.Default.Delete,
+                                painterResource(R.drawable.ic_delete),
                                 contentDescription = stringResource(R.string.schedule_delete_cd),
                                 tint = MaterialTheme.colorScheme.error
                             )

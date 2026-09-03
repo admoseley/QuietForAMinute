@@ -2,15 +2,12 @@ package com.admoseley.quietforaminute.ui.overlay
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,7 +49,7 @@ fun MuteDurationDialog(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.VolumeOff,
+                painter = painterResource(R.drawable.ic_volume_off),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
@@ -83,9 +80,11 @@ fun MuteDurationDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = if (restoreVolume == 0) Icons.AutoMirrored.Filled.VolumeOff
-                        else if (restoreVolume < maxVolume / 2) Icons.AutoMirrored.Filled.VolumeDown
-                        else Icons.AutoMirrored.Filled.VolumeUp,
+                        painter = painterResource(
+                            if (restoreVolume == 0) R.drawable.ic_volume_off
+                            else if (restoreVolume < maxVolume / 2) R.drawable.ic_volume_down
+                            else R.drawable.ic_volume_up
+                        ),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)

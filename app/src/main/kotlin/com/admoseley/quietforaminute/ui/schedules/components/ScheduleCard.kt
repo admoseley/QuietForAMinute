@@ -1,13 +1,11 @@
 package com.admoseley.quietforaminute.ui.schedules.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,7 +64,7 @@ fun ScheduleCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.AccessTime,
+                        painterResource(R.drawable.ic_access_time),
                         contentDescription = stringResource(R.string.schedule_time_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
@@ -82,7 +80,7 @@ fun ScheduleCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Timer,
+                        painterResource(R.drawable.ic_timer),
                         contentDescription = stringResource(R.string.schedule_duration_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)

@@ -1,16 +1,15 @@
 package com.admoseley.quietforaminute.ui.navigation
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.admoseley.quietforaminute.R
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,10 +21,10 @@ import com.admoseley.quietforaminute.ui.schedules.ScheduleEditScreen
 import com.admoseley.quietforaminute.ui.schedules.ScheduleListScreen
 import com.admoseley.quietforaminute.ui.settings.SettingsScreen
 
-sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
-    object Settings : Screen("settings", "Settings", Icons.Default.Settings)
-    object Schedules : Screen("schedules", "Schedules", Icons.Default.CalendarMonth)
-    object ScheduleEdit : Screen("schedules/edit?id={id}", "Edit Schedule", Icons.Default.CalendarMonth) {
+sealed class Screen(val route: String, val label: String, @param:DrawableRes val icon: Int) {
+    object Settings : Screen("settings", "Settings", R.drawable.ic_settings)
+    object Schedules : Screen("schedules", "Schedules", R.drawable.ic_calendar_month)
+    object ScheduleEdit : Screen("schedules/edit?id={id}", "Edit Schedule", R.drawable.ic_calendar_month) {
         fun route(id: Long = -1L) = "schedules/edit?id=$id"
     }
 }
@@ -103,7 +102,7 @@ private fun BottomBar(navController: NavHostController) {
     NavigationBar {
         bottomNavItems.forEach { screen ->
             NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.label) },
+                icon = { Icon(painterResource(screen.icon), contentDescription = screen.label) },
                 label = { Text(screen.label) },
                 selected = currentRoute == screen.route,
                 onClick = {

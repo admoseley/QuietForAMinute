@@ -8,9 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -19,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -96,7 +94,7 @@ fun ScheduleListScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddSchedule,
-                icon = { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.schedule_add_cd)) },
+                icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = stringResource(R.string.schedule_add_cd)) },
                 text = { Text(stringResource(R.string.schedule_add_fab)) }
             )
         }
@@ -182,7 +180,7 @@ private fun EmptyState(onAddSchedule: () -> Unit) {
         modifier = Modifier.padding(32.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.CalendarMonth,
+            painter = painterResource(R.drawable.ic_calendar_month),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.size(72.dp)
@@ -199,7 +197,7 @@ private fun EmptyState(onAddSchedule: () -> Unit) {
             textAlign = TextAlign.Center
         )
         FilledTonalButton(onClick = onAddSchedule) {
-            Icon(Icons.Default.Add, null)
+            Icon(painterResource(R.drawable.ic_add), null)
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.schedule_create_first_button))
         }
