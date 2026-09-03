@@ -167,12 +167,13 @@ At the very top of the card is a muted-volume icon and the prompt: **"Mute for h
 
 #### Choosing a Duration
 
-The center of the card shows a **duration picker**: four preset chips (**15m**, **30m**, **1h**, **2h**) above a pair of compact steppers for **hours** and **minutes**. An earlier version of this screen reused Android's clock-face time picker for this, which read as "what time is it" rather than "how long" — the preset-and-stepper layout replaced it for that reason.
+The center of the card shows a **duration picker**: four preset chips (**15m**, **30m**, **1h**, **2h**) above editable **hours** and **minutes** fields, each with **−** and **+** buttons. An earlier version of this screen reused Android's clock-face time picker for this, which read as "what time is it" rather than "how long" — this layout replaced it for that reason.
 
 - **Default value:** The picker opens at **0 hours, 30 minutes** every time (the same as tapping the **30m** preset). This covers most short meetings or focused sessions without requiring any adjustment.
 - **Using a preset:** Tap **15m**, **30m**, **1h**, or **2h** to set both fields at once. Whichever preset matches the current hours/minutes is highlighted.
-- **Using the steppers:** Tap **+** or **−** under **Hours** to adjust by 1, or under **Minutes** to adjust by 5. Minutes step by 5 rather than 1 — single-minute precision isn't meaningful for a mute timer, and 5-minute steps get you to any common duration in a few taps.
-- **Valid range:** Hours can be 0–23. Minutes can be 0–55, in steps of 5. Any combination is valid as long as the total duration is greater than zero (i.e., you cannot start a zero-length timer).
+- **Using the steppers:** Tap **+** or **−** under **Hours** to adjust by 1, or under **Minutes** to adjust by 5. The 5-minute step is just a shortcut for the common cases — it doesn't limit what you can set.
+- **Typing an exact value:** Tap the number itself and type it. This is how you get durations the presets and steppers don't land on, like 3 minutes or 47 minutes. Values above the maximum are clamped as you type.
+- **Valid range:** Hours 0–23, minutes 0–59. Any combination is valid as long as the total duration is greater than zero (i.e., you cannot start a zero-length timer).
 - **Examples of common durations:**
   - 30-minute meeting → tap the **30m** preset
   - 1-hour class → tap the **1h** preset
@@ -339,7 +340,7 @@ The current start time is displayed in large text (e.g., **9:00 AM**). Tap **Cha
 
 #### Mute Duration
 
-The current duration is displayed in large text (e.g., **1h 30m**). Tap **Change** to open the same preset-chips-and-stepper duration picker used in the manual mute popup (see [Section 3.2](#32-using-the-mute-duration-popup)) — presets for 15m/30m/1h/2h, plus steppers for anything else (hours by 1, minutes by 5).
+The current duration is displayed in large text (e.g., **1h 30m**). Tap **Change** to open the same duration picker used in the manual mute popup (see [Section 3.2](#32-using-the-mute-duration-popup)) — presets for 15m/30m/1h/2h, **+**/**−** steppers, and editable fields for typing an exact value.
 
 - Example: to mute for 90 minutes, tap the **1h** preset, then **+** once under Minutes.
 - Example: to mute for 45 minutes, tap **+** nine times under Minutes from zero, or start from the **30m** preset and add 15 more.
@@ -480,7 +481,7 @@ Tapping **Grant** for any row opens the relevant system settings page directly. 
 - Detects when media or ring volume transitions to zero via physical button, software slider, or the volume-panel mute icon
 - Restores the same stream that was muted
 - Displays a floating overlay popup over any app (not above the lock screen)
-- Preset-chips-and-stepper duration picker (15m/30m/1h/2h presets, plus hour/5-minute steppers)
+- Duration picker with three ways in: 15m/30m/1h/2h presets, +/- steppers, and editable fields for exact values (hours 0–23, minutes 0–59)
 - Per-mute restore volume override via in-dialog slider
 - Optional mute chime — plays immediately when mute is detected
 - "Skip" option to dismiss the popup and keep the phone muted indefinitely
@@ -529,7 +530,7 @@ Check that "Show timer popup on mute" is enabled in Settings, and that the "Disp
 Make sure the "Exact alarms" permission is granted (Settings → Permissions). Without it, Android may defer scheduled alarms significantly. Also confirm the schedule is enabled (the toggle on the card should be on).
 
 **The popup appears but the Start button is disabled.**
-Both hours and minutes on the duration picker are set to zero. Tap a preset (15m/30m/1h/2h) or use the steppers to set at least one minute before tapping Start.
+Both hours and minutes on the duration picker are set to zero. Tap a preset (15m/30m/1h/2h), use the +/- steppers, or type a value into the hours/minutes field to set at least one minute before tapping Start.
 
 **Will my schedules still fire after a reboot?**
 Yes. The app registers a `BootReceiver` that re-arms all enabled schedule alarms automatically when the device powers on.

@@ -10,7 +10,7 @@ Quiet For A Minute is an Android app that takes the friction out of temporary mu
 When you mute your device — volume-down to zero, dragging the volume slider to zero, or tapping the mute icon in the volume panel — Quiet For A Minute pops up a dialog asking how long you want to stay muted. Pick your duration, and the app handles the rest — counting down in a foreground notification and restoring your volume automatically when the timer expires.
 
 - Triggers on the **media** stream and the **ring** stream, and restores whichever one you muted
-- Set mute duration with preset chips (15m/30m/1h/2h) plus hour/5-minute steppers
+- Set mute duration with preset chips (15m/30m/1h/2h), +/- steppers, or by typing an exact value
 - Choose the volume level to restore to (adjustable per-mute)
 - Skip the timer if you just want a manual mute with no auto-restore
 - Optional chime sounds on mute and on restore, so you know exactly when it happened
