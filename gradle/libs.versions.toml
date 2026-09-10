@@ -4,7 +4,7 @@
 # Kotlin AGP bundles (2.2.10), but that was never actually verified; 2.4.10 builds and tests
 # clean against AGP 9.4.0, so the plugin can track current Kotlin independently.
 agp = "9.4.0"
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 ksp = "2.3.11"
 # Libraries: latest stable on Google Maven / Maven Central as of 2026-09-02.
 compose-bom = "2026.08.00"
