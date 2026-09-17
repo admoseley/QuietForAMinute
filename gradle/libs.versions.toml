@@ -5,7 +5,7 @@
 # clean against AGP 9.4.0, so the plugin can track current Kotlin independently.
 agp = "9.4.0"
 kotlin = "2.4.10"
-ksp = "2.3.11"
+ksp = "2.3.12"
 # Libraries: latest stable on Google Maven / Maven Central as of 2026-09-02.
 compose-bom = "2026.08.00"
 room = "2.8.4"
